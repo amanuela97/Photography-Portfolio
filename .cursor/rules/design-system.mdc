@@ -1,0 +1,104 @@
+---
+alwaysApply: true
+---
+
+# Design System
+
+A sophisticated, minimalist design system brand. This system emphasizes elegance, clarity, and emotional storytelling through carefully curated colors, typography, and spacing.
+
+## Colors
+
+### Palette
+
+- **Primary**: #2B2520 - Deep charcoal for headings and primary elements. Conveys sophistication and emotional depth.
+- **Secondary**: #F5EEEB - Warm ivory/cream background. Creates warmth and elegance while maintaining readability.
+- **Accent**: #D4A574 - Warm gold/taupe accent. Used for highlights, buttons, and interactive elements.
+- **Background**: #FAFAF8 - Off-white for main content areas. Ensures subtle contrast without harshness.
+- **Text**: #3D3935 - Charcoal for body text. Ensures accessibility and readability against light backgrounds.
+- **Muted**: #B8AFA3 - Soft taupe for secondary text and borders. Maintains visual hierarchy without distraction.
+
+### Usage Guidelines
+
+- Use **Primary** (#2B2520) for main headings, navigation, and key interactive elements
+- Use **Accent** (#D4A574) for call-to-action buttons, hover states, and highlights
+- Use **Text** (#3D3935) for all body copy and readable content
+- Use **Muted** (#B8AFA3) for captions, metadata, and subtle UI elements
+- Use **Background** (#FAFAF8) as the base for all page backgrounds
+- Use **Secondary** (#F5EEEB) for cards, sections, and content containers
+
+## Typography
+
+### Font Family
+
+- **All text**: Inter
+  - Font weights: 300 (light), 400 (regular), 600 (semibold), 700 (bold)
+  - Subset: Latin & Latin Extended
+
+## Components
+
+### Use Shadcn components always
+
+## Imagery
+
+### Photography Style
+
+- Warm, natural light photography
+- Emotional and authentic moments
+- Film aesthetic with rich tones
+- Focus on intimate details and genuine emotions
+
+### Image Overlays
+
+- Use subtle warm overlays (20-30% opacity) of primary color for text readability
+- Maintain image quality by avoiding heavy filters
+- Prioritize storytelling over visual effects
+
+## Accessibility
+
+### Contrast Requirements
+
+- Primary text on background: 13.5:1 contrast ratio (WCAG AAA)
+- Secondary text on background: 8:1 contrast ratio (WCAG AA)
+- Interactive elements: Minimum 3:1 contrast ratio
+
+### Color Blindness
+
+- Do not rely on color alone to convey meaning
+- Use patterns, icons, or text to supplement color
+- Test designs with colorblind simulators
+
+### Typography
+
+- Maintain minimum 16px font size for body text
+- Line height minimum 1.5 for body text
+- Maximum line width 65-75 characters for optimal readability
+
+## Animation & Transitions
+
+### Timing
+
+- **Fast**: 150ms - Used for hover states and micro-interactions
+- **Standard**: 300ms - Used for modal transitions and navigation
+- **Slow**: 500ms - Used for page transitions and reveals
+
+### Easing
+
+- **Ease-in-out**: Default for most transitions
+- **Ease-out**: For entrance animations
+- **Ease-in**: For exit animations
+
+## Voice & Tone
+
+- **Elegant**: Use sophisticated, refined language
+- **Warm**: Create emotional connection through genuine storytelling
+- **Authentic**: Prioritize honest communication over marketing speak
+- **Poetic**: Use metaphors and imagery that evoke emotion
+- **Personal**: Address users directly and create intimate experiences
+
+## Implementation Notes
+
+- This design system emphasizes emotional storytelling and sophisticated elegance
+- Colors are warm and inviting, creating a premium feel
+- Typography is clear and hierarchical, guiding users through content
+- All components maintain the warm, minimalist aesthetic
+- Interactive elements use the accent color to create visual interest without overwhelming

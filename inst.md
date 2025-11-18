@@ -1,0 +1,5 @@
+- in the admin page instead of having text inputs for the image urls for the following field, add file input to upload media files directly. So change the text fields for portraitImage, coverImageUrl, images (should support uploading multiple images at once), video.
+- use react-dropzone which is already installed
+- display a progress bar for image/video upload.
+- in the server action logic, upload the media files first to firebase storage under the correct folder structure and then save the firestore documents with the image url refrenced.
+- make sure portraitImage is not uploaded multiple time since it should be upserted so there will not be duplicates.
