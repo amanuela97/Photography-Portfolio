@@ -13,6 +13,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Studio of G10",
   description: "Portraits & Life Stories Captured with Heart",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
