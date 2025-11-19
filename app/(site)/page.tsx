@@ -3,7 +3,7 @@ import { getFeaturedGalleries } from "@/utils/data-access/galleries";
 import { getFeaturedTestimonials } from "@/utils/data-access/testimonials";
 import { HomePageContent } from "./components/home-page-content";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let favoritePhotos: Awaited<ReturnType<typeof getFavoritePhotos>> = [];

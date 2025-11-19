@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_noStore } from "next/cache";
 import { adminDb, adminStorage } from "@/utils/firebase/admin";
 import type { PhotoDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
@@ -8,6 +9,7 @@ const COLLECTION = "photos";
 const MAX_FAVORITES = 6;
 
 export async function getPhotos(): Promise<PhotoDocument[]> {
+  unstable_noStore();
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -24,6 +26,7 @@ export async function getPhotos(): Promise<PhotoDocument[]> {
 }
 
 export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
+  unstable_noStore();
   try {
     // Try query with orderBy (requires composite index)
     const snap = await adminDb

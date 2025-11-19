@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_noStore as noStore } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { ProfileDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
@@ -7,6 +8,9 @@ import { nowISOString, toISOString } from "./helpers";
 const PROFILE_DOC_PATH = "site/profile";
 
 export async function getProfile(): Promise<ProfileDocument | null> {
+  // Prevent Next.js from caching this function's result
+  noStore();
+  
   const snap = await adminDb.doc(PROFILE_DOC_PATH).get();
   if (!snap.exists) {
     return null;

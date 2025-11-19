@@ -9,6 +9,8 @@ import { LogoutButton } from "@/app/(site)/components/logout-button";
 import { adminAuth } from "@/utils/firebase/admin";
 import { AdminTabs } from "./components/admin-tabs";
 
+export const dynamic = "force-dynamic";
+
 const sections = [
   { value: "profile", label: "Profile", content: <ProfileManager /> },
   { value: "about", label: "About", content: <AboutManager /> },

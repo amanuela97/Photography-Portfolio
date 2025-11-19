@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_noStore } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { TestimonialDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
@@ -8,18 +9,26 @@ const COLLECTION = "testimonials";
 const MAX_FEATURED = 4;
 
 export async function getTestimonials(): Promise<TestimonialDocument[]> {
-  const snap = await adminDb
-    .collection(COLLECTION)
-    .orderBy("createdAt", "desc")
-    .get();
-  return snap.docs.map((doc) =>
-    serializeTestimonial(doc.id, doc.data() as TestimonialDocument)
-  );
+  unstable_noStore();
+  try {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snap.docs.map((doc) =>
+      serializeTestimonial(doc.id, doc.data() as TestimonialDocument)
+    );
+  } catch (error) {
+    console.error("Error fetching testimonials:", error);
+    // Return empty array on error to prevent page crashes
+    return [];
+  }
 }
 
 export async function getFeaturedTestimonials(
   limit = MAX_FEATURED
 ): Promise<TestimonialDocument[]> {
+  unstable_noStore();
   try {
     // Try query with orderBy (requires composite index)
     const snap = await adminDb

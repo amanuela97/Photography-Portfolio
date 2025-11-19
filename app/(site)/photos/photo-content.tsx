@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
+import { AnimatedImage } from "../components/animated-image";
+import { ScrollTextAnimation } from "../components/scroll-text-animation";
 import { PhotoLightbox } from "./photo-lightbox";
 import type { PhotoDocument } from "@/utils/types";
 
@@ -112,13 +113,12 @@ export function PhotosContent({ initialPhotos }: PhotosContentProps) {
                   className="relative overflow-hidden cursor-pointer group"
                   onClick={() => setSelectedPhotoIndex(index)}
                 >
-                  <Image
+                  <AnimatedImage
                     src={photo.url || "/placeholder.svg"}
                     alt={photo.title || `Photo ${index + 1}`}
                     width={600}
                     height={height}
                     className="w-full h-auto object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                     unoptimized
                   />
                   {/* Hover overlay */}
@@ -128,9 +128,11 @@ export function PhotosContent({ initialPhotos }: PhotosContentProps) {
             })}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <p className="text-warm-gray text-xl">No photos found</p>
-          </div>
+          <ScrollTextAnimation>
+            <div className="text-center py-20">
+              <p className="text-warm-gray text-xl">No photos found</p>
+            </div>
+          </ScrollTextAnimation>
         )}
 
         {/* Loading indicator */}
@@ -145,9 +147,11 @@ export function PhotosContent({ initialPhotos }: PhotosContentProps) {
 
         {/* End message */}
         {!hasMore && (
-          <p className="text-center text-warm-gray mt-8 font-serif italic">
-            You&apos;ve reached the end of the collection
-          </p>
+          <ScrollTextAnimation>
+            <p className="text-center text-warm-gray mt-8 font-serif italic">
+              You&apos;ve reached the end of the collection
+            </p>
+          </ScrollTextAnimation>
         )}
       </div>
 

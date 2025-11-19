@@ -16,7 +16,7 @@ interface MediaDropzoneProps {
   progress?: number;
   onFilesChange?: (files: File[]) => void;
   existingFiles?: string[];
-  onRemoveExisting?: () => void;
+  onRemoveExisting?: (index?: number) => void;
   disabled?: boolean;
 }
 
@@ -87,7 +87,7 @@ export function MediaDropzone({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={onRemoveExisting}
+                      onClick={() => onRemoveExisting(index)}
                       disabled={disabled}
                       className="absolute top-4 right-4 h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10 bg-black/50 hover:bg-black/70 cursor-pointer"
                     >
@@ -111,7 +111,7 @@ export function MediaDropzone({
                       variant="destructive"
                       size="icon"
                       className="absolute top-2 right-2 h-10 w-10 group-hover:opacity-100 transition-opacity shadow-lg z-10 bg-black/50 hover:bg-black/70 cursor-pointer"
-                      onClick={onRemoveExisting}
+                      onClick={() => onRemoveExisting(index)}
                       disabled={disabled}
                     >
                       <X className="h-4 w-4" />

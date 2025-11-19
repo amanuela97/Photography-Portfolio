@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_noStore } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { AboutDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
@@ -7,6 +8,7 @@ import { nowISOString, toISOString } from "./helpers";
 const ABOUT_DOC_PATH = "site/about";
 
 export async function getAbout(): Promise<AboutDocument | null> {
+  unstable_noStore();
   const snap = await adminDb.doc(ABOUT_DOC_PATH).get();
   if (!snap.exists) {
     return null;

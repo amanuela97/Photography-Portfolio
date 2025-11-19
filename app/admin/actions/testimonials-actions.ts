@@ -22,7 +22,8 @@ export async function createTestimonialAction(
       isFeatured: formData.get("isFeatured") === "on" || false,
     });
     revalidatePath("/admin");
-    revalidatePath("/testimonial/create");
+    revalidatePath("/testimonials");
+    revalidatePath("/testimonials/create");
     return { status: "success", message: "Testimonial created." };
   } catch (error) {
     console.error(error);

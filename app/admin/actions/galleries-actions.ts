@@ -57,7 +57,17 @@ export async function createGalleryAction(
       isFeatured: formData.get("isFeatured") === "on",
     });
 
+    // Revalidate admin pages
     revalidatePath("/admin");
+    revalidatePath("/admin/gallery");
+    if (slug) {
+      revalidatePath(`/admin/gallery/${slug}`);
+    }
+    
+    // Revalidate public-facing pages
+    revalidatePath("/galleries");
+    revalidatePath("/");
+    
     return { status: "success", message: "Gallery created." };
   } catch (error) {
     console.error(error);
@@ -116,7 +126,20 @@ export async function updateGalleryAction(
       isFeatured: formData.get("isFeatured") === "on",
     });
 
+    // Revalidate admin pages
     revalidatePath("/admin");
+    revalidatePath("/admin/gallery");
+    if (slug) {
+      revalidatePath(`/admin/gallery/${slug}`);
+    }
+    
+    // Revalidate public-facing pages
+    revalidatePath("/galleries");
+    revalidatePath("/");
+    if (slug) {
+      revalidatePath(`/galleries/${slug}`);
+    }
+    
     return { status: "success", message: "Gallery updated." };
   } catch (error) {
     console.error(error);
@@ -131,8 +154,20 @@ export async function deleteGalleryAction(
   try {
     const id = formData.get("id")?.toString();
     if (!id) throw new Error("Gallery ID missing.");
+    const slug = formData.get("slug")?.toString();
     await deleteGallery(id);
+    
+    // Revalidate admin pages
     revalidatePath("/admin");
+    revalidatePath("/admin/gallery");
+    
+    // Revalidate public-facing pages
+    revalidatePath("/galleries");
+    revalidatePath("/");
+    if (slug) {
+      revalidatePath(`/galleries/${slug}`);
+    }
+    
     return { status: "success", message: "Gallery deleted." };
   } catch (error) {
     console.error(error);

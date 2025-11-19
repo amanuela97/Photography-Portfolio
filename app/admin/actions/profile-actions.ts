@@ -27,6 +27,10 @@ export async function saveProfileAction(
 
     await saveProfile(payload);
     revalidatePath("/admin");
+    // Revalidate all site pages that use the profile
+    revalidatePath("/", "layout");
+    revalidatePath("/contact");
+    revalidatePath("/about");
 
     return {
       status: "success",

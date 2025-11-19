@@ -90,9 +90,15 @@ export async function POST(request: NextRequest) {
       isFeatured: formData.get("isFeatured") === "on",
     });
 
+    // Revalidate admin pages
     revalidatePath("/admin");
     revalidatePath("/admin/gallery");
     revalidatePath(`/admin/gallery/${normalizedSlug}`);
+
+    // Revalidate public-facing pages
+    revalidatePath("/galleries");
+    revalidatePath("/");
+
     return NextResponse.json({
       success: true,
       message: "Gallery created.",
@@ -216,6 +222,7 @@ export async function PUT(request: NextRequest) {
 
     const resultingSlug = slug || previousSlug;
 
+    // Revalidate admin pages
     revalidatePath("/admin");
     revalidatePath("/admin/gallery");
     if (previousSlug) {
@@ -223,6 +230,16 @@ export async function PUT(request: NextRequest) {
     }
     if (resultingSlug && resultingSlug !== previousSlug) {
       revalidatePath(`/admin/gallery/${resultingSlug}`);
+    }
+
+    // Revalidate public-facing pages
+    revalidatePath("/galleries");
+    revalidatePath("/");
+    if (previousSlug) {
+      revalidatePath(`/galleries/${previousSlug}`);
+    }
+    if (resultingSlug) {
+      revalidatePath(`/galleries/${resultingSlug}`);
     }
 
     return NextResponse.json({
@@ -266,8 +283,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     await deleteGallery(id);
+
+    // Revalidate admin pages
     revalidatePath("/admin");
     revalidatePath("/admin/gallery");
+
+    // Revalidate public-facing pages
+    revalidatePath("/galleries");
+    revalidatePath("/");
+    if (slug) {
+      revalidatePath(`/galleries/${slug}`);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Gallery deleted.",

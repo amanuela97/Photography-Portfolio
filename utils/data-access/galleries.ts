@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_noStore } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { GalleryDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
@@ -8,6 +9,7 @@ const COLLECTION = "galleries";
 const MAX_FEATURED = 4;
 
 export async function getGalleries(): Promise<GalleryDocument[]> {
+  unstable_noStore();
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -26,6 +28,7 @@ export async function getGalleries(): Promise<GalleryDocument[]> {
 export async function getGalleryById(
   id: string
 ): Promise<GalleryDocument | null> {
+  unstable_noStore();
   const doc = await adminDb.collection(COLLECTION).doc(id).get();
   if (!doc.exists) {
     return null;
@@ -36,6 +39,7 @@ export async function getGalleryById(
 export async function getGalleryBySlug(
   slug: string
 ): Promise<GalleryDocument | null> {
+  unstable_noStore();
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -57,6 +61,7 @@ export async function getGalleryBySlug(
 export async function getFeaturedGalleries(
   limit = MAX_FEATURED
 ): Promise<GalleryDocument[]> {
+  unstable_noStore();
   try {
     // Try query with orderBy (requires composite index)
     const snap = await adminDb

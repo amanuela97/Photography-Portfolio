@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReadonlyURLSearchParams,
   useRouter,
@@ -18,7 +18,7 @@ import toast from "react-hot-toast";
 
 const SESSION_ENDPOINT = "/api/session";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectDestination = useMemo(
@@ -208,6 +208,29 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen flex items-center justify-center bg-brand-background p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-brand-surface rounded-lg shadow-lg p-8">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-brand-primary mb-2">
+                Admin Portal
+              </h1>
+              <p className="text-brand-text text-base">
+                Loading...
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }
 

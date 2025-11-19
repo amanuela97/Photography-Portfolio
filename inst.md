@@ -1,7 +1,5 @@
-- Lets start with (site)/page.tsx, which should be converted into an on demand ISR component
-  Inside (site)/page.tsx you need to fetch maybe using promise.all and pass the data to another client component.
-- the following data needs to be fetched for (site)/page.tsx;
-  - site/profile document (this data will also be needed inside the footer so maybe it is best to fetch it inside SiteLayout and then use some global state manager or context to share it to the home page)
-  - photos documents where the field isFavorite is set to true (you must fetch at maximum 3 docmunets)
-  - galleries where the field isFeatured is set to true (you must fetch at maximum 4 docmunets)
-  - testimonials where the field isFeatured is set to true (you must fetch at maximum 4 docmunets)
+- I need you to do some animation to make the website look more complete, do not change the existing core style, just add new animation or effects.
+- firstly add a nice subtle animation on the navitems text underline when hovered over
+- secondly when i navigate to different pages via the navitems, the hero section image takes a while to load so the background is flashed momentarily which looks jarring. fix this by maybe maybe fading the image gently.
+- thridly, make sure any other images under (site) folder is faded in gently, Slide up by 10–20px while fading, and blur slightly and sharpen as they appear.
+- Lastly, for all the texts under (site), the first time the page is loaded, have text fade in gently as the user scrolls down the page. maybe you can use gsap for this, i have already downloaded it.

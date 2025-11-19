@@ -26,11 +26,12 @@ export function Navbar() {
       href: "#",
       hasDropdown: true,
       dropdownItems: [
-        { label: "Galleries", href: "/gallery" },
+        { label: "Galleries", href: "/galleries" },
         { label: "Photos", href: "/photos" },
-        { label: "Videos", href: "/videos" },
+        { label: "Films", href: "/films" },
       ],
     },
+    { label: "Testimonials", href: "/testimonials" },
     { label: "Contact", href: "/contact" },
   ];
 
@@ -60,16 +61,25 @@ export function Navbar() {
                   onMouseLeave={() => setIsWorkDropdownOpen(false)}
                 >
                   <button
-                    className={`flex items-center gap-1 px-3 py-2 text-lg font-medium transition-colors hover:text-accent ${
+                    className={`relative flex items-center gap-1 px-3 py-2 text-lg font-medium transition-colors hover:text-accent ${
                       pathname.startsWith("/galleries") ||
                       pathname.startsWith("/photos") ||
-                      pathname.startsWith("/videos")
-                        ? "text-white border-b-2 border-white"
+                      pathname.startsWith("/films")
+                        ? "text-white"
                         : "text-white"
                     }`}
                   >
                     {item.label}
                     <ChevronDown className="w-4 h-4" />
+                    <span
+                      className={`absolute bottom-0 left-0 right-0 h-0.5 bg-white transform origin-left transition-all duration-300 ease-out ${
+                        pathname.startsWith("/galleries") ||
+                        pathname.startsWith("/photos") ||
+                        pathname.startsWith("/films")
+                          ? "scale-x-100"
+                          : "scale-x-0 group-hover:scale-x-100"
+                      }`}
+                    />
                   </button>
 
                   {isWorkDropdownOpen && (
@@ -79,10 +89,11 @@ export function Navbar() {
                           <Link
                             key={dropdownItem.label}
                             href={dropdownItem.href}
-                            className="block px-4 py-3 text-lg text-white hover:underline hover:underline-offset-4 transition-all"
+                            className="group/dropdown relative block px-4 py-3 text-lg text-white transition-all"
                             onClick={() => setIsWorkDropdownOpen(false)}
                           >
                             {dropdownItem.label}
+                            <span className="absolute bottom-2 left-4 right-4 h-0.5 bg-white transform origin-left scale-x-0 group-hover/dropdown:scale-x-100 transition-all duration-300 ease-out" />
                           </Link>
                         ))}
                       </div>
@@ -92,14 +103,19 @@ export function Navbar() {
               ) : (
                 <Link
                   href={item.href}
-                  className={`px-3 py-2 text-lg font-medium transition-colors hover:text-accent ${
-                    pathname === item.href
-                      ? "text-white border-b-2 border-white"
-                      : "text-white"
+                  className={`group relative px-3 py-2 text-lg font-medium transition-colors hover:text-accent ${
+                    pathname === item.href ? "text-white" : "text-white"
                   }`}
                   onClick={() => setIsWorkDropdownOpen(false)}
                 >
                   {item.label}
+                  <span
+                    className={`absolute bottom-0 left-0 right-0 h-0.5 bg-white transform origin-left transition-all duration-300 ease-out ${
+                      pathname === item.href
+                        ? "scale-x-100"
+                        : "scale-x-0 group-hover:scale-x-100"
+                    }`}
+                  />
                 </Link>
               )}
             </div>
