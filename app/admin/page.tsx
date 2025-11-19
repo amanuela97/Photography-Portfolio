@@ -1,27 +1,25 @@
-import { Suspense } from "react";
 import { cookies } from "next/headers";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileManager from "./sections/profile-manager";
 import AboutManager from "./sections/about-manager";
 import GalleriesManager from "./sections/galleries-manager";
 import PhotosManager from "./sections/photos-manager";
 import TestimonialsManager from "./sections/testimonials-manager";
 import FilmsManager from "./sections/films-manager";
-import { Skeleton } from "@/components/ui/skeleton";
 import { LogoutButton } from "@/app/(site)/components/logout-button";
 import { adminAuth } from "@/utils/firebase/admin";
+import { AdminTabs } from "./components/admin-tabs";
 
 const sections = [
-  { value: "profile", label: "Profile", component: <ProfileManager /> },
-  { value: "about", label: "About", component: <AboutManager /> },
-  { value: "galleries", label: "Galleries", component: <GalleriesManager /> },
-  { value: "photos", label: "Photos", component: <PhotosManager /> },
+  { value: "profile", label: "Profile", content: <ProfileManager /> },
+  { value: "about", label: "About", content: <AboutManager /> },
+  { value: "galleries", label: "Galleries", content: <GalleriesManager /> },
+  { value: "photos", label: "Photos", content: <PhotosManager /> },
   {
     value: "testimonials",
     label: "Testimonials",
-    component: <TestimonialsManager />,
+    content: <TestimonialsManager />,
   },
-  { value: "films", label: "Films", component: <FilmsManager /> },
+  { value: "films", label: "Films", content: <FilmsManager /> },
 ];
 
 async function getUserEmail(): Promise<string | null> {
@@ -71,39 +69,7 @@ export default async function AdminPage() {
           Manage your photography portfolio in one place.
         </h1>
       </header>
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="flex flex-wrap gap-2 bg-brand-surface p-2 shadow-soft">
-          {sections.map((section) => (
-            <TabsTrigger
-              key={section.value}
-              value={section.value}
-              className="px-4 py-2 data-[state=active]:bg-brand-primary data-[state=active]:text-brand-contrast"
-            >
-              {section.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        {sections.map((section) => (
-          <TabsContent
-            key={section.value}
-            value={section.value}
-            className="space-y-6"
-          >
-            <Suspense fallback={<SectionSkeleton />}>
-              {section.component}
-            </Suspense>
-          </TabsContent>
-        ))}
-      </Tabs>
+      <AdminTabs sections={sections} defaultValue="profile" />
     </main>
-  );
-}
-
-function SectionSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-12 w-1/3 bg-brand-muted/40" />
-      <Skeleton className="h-64 rounded-2xl bg-brand-muted/20" />
-    </div>
   );
 }

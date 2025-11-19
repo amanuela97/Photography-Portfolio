@@ -27,6 +27,21 @@ export async function getGalleryById(
   return serializeGallery(doc.id, doc.data() as GalleryDocument);
 }
 
+export async function getGalleryBySlug(
+  slug: string
+): Promise<GalleryDocument | null> {
+  const snap = await adminDb
+    .collection(COLLECTION)
+    .where("slug", "==", slug)
+    .limit(1)
+    .get();
+  if (snap.empty) {
+    return null;
+  }
+  const doc = snap.docs[0];
+  return serializeGallery(doc.id, doc.data() as GalleryDocument);
+}
+
 export async function createGallery(
   payload: Omit<GalleryDocument, "id" | "createdAt" | "updatedAt">
 ): Promise<void> {

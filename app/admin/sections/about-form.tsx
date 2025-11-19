@@ -1,19 +1,11 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FormShell } from "../components/form-shell";
-import { saveAboutAction } from "../actions/about-actions";
-import { initialActionState } from "../actions/action-state";
 import toast from "react-hot-toast";
 import type { AboutDocument, GearItem, ProcessStep } from "@/utils/types";
 import { MediaDropzone } from "../components/media-dropzone";
@@ -48,54 +40,27 @@ export function AboutForm({ about }: AboutFormProps) {
   const [software, setSoftware] = useState<GearItem[]>(initialSoftware);
   const [landscapeFiles, setLandscapeFiles] = useState<File[]>([]);
   const [landscapeProgress, setLandscapeProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const initialized = useRef(false);
 
-  const [state, formAction] = useActionState(
-    saveAboutAction,
-    initialActionState<AboutDocument>()
-  );
-  const [pending, startTransition] = useTransition();
+  // Controlled state for hero intro to prevent reset on remount
+  const [heroIntro, setHeroIntro] = useState(about?.hero.intro ?? "");
 
+  // Initialize heroIntro only once when about data first becomes available
+  // This prevents overwriting user input during re-renders or form submission
   useEffect(() => {
-    // Only show toasts for success/error, not for idle state
-    if (state.status === "idle") {
-      return;
+    if (!initialized.current && about?.hero.intro !== undefined) {
+      setHeroIntro(about.hero.intro);
+      initialized.current = true;
     }
-
-    if (state.status === "success") {
-      toast.success(state.message ?? "About content saved successfully!", { 
-        id: "firestore-save",
-        duration: 4000,
-      });
-      setLandscapeProgress(100);
-      setTimeout(() => {
-        setLandscapeFiles([]);
-        setLandscapeProgress(0);
-      }, 1000);
-    } else if (state.status === "error") {
-      toast.error(state.message ?? "Failed to save content.", { 
-        id: "firestore-save",
-        duration: 4000,
-      });
-      setLandscapeProgress(0);
-    }
-  }, [state]);
+  }, [about?.hero.intro]);
 
   useEffect(() => {
     if (landscapeFiles.length === 0) {
       setLandscapeProgress(0);
-      return;
     }
-    if (pending) {
-      setLandscapeProgress((prev) => (prev < 60 ? 60 : prev));
-    } else if (state.status === "success") {
-      setLandscapeProgress(100);
-      const timeout = setTimeout(() => setLandscapeProgress(0), 800);
-      return () => clearTimeout(timeout);
-    } else if (state.status === "error") {
-      setLandscapeProgress(0);
-    }
-  }, [pending, landscapeFiles.length, state.status]);
+  }, [landscapeFiles.length]);
 
   const renderGearEditor = (
     label: string,
@@ -195,64 +160,79 @@ export function AboutForm({ about }: AboutFormProps) {
         <Button
           type="submit"
           form="about-form"
-          disabled={pending}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          disabled={isSaving}
+          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {pending ? "Saving..." : "Save content"}
+          {isSaving ? "Saving..." : "Save content"}
         </Button>
       }
       contentClassName="space-y-12"
     >
       <form
+        ref={formRef}
         id="about-form"
         className="space-y-10"
-        action={async (formData) => {
-          // Upload landscape file if present
-          if (landscapeFiles.length > 0 && landscapeFiles[0]) {
-            try {
-              setIsUploading(true);
-              setLandscapeProgress(5);
-              toast.loading("Replacing existing image...", { id: "image-upload" });
+        onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            setIsSaving(true);
+            setLandscapeProgress(10);
+            toast.loading("Saving content...", { id: "about-save" });
 
-              const uploadFormData = new FormData();
-              uploadFormData.append("file", landscapeFiles[0]);
-              uploadFormData.append("folder", "about/landscape");
-              uploadFormData.append("replaceExisting", "true");
+            const form = e.currentTarget;
+            const formData = new FormData(form);
 
-              setLandscapeProgress(20);
-              const uploadResponse = await fetch("/api/upload", {
-                method: "POST",
-                body: uploadFormData,
-              });
+            // Set controlled state values
+            formData.set("heroIntro", heroIntro);
+            formData.set("processSteps", JSON.stringify(steps));
+            formData.set("cameraGear", JSON.stringify(camera));
+            formData.set("lensGear", JSON.stringify(lenses));
+            formData.set("softwareGear", JSON.stringify(software));
 
-              if (!uploadResponse.ok) {
-                const error = await uploadResponse.json();
-                throw new Error(error.error || "Upload failed");
-              }
-
-              setLandscapeProgress(70);
-              const { url } = await uploadResponse.json();
-              formData.append("landscapeImageUrl", url);
-              setLandscapeProgress(90);
-              
-              toast.success("Image uploaded successfully!", { id: "image-upload" });
-              setIsUploading(false);
-            } catch (error) {
-              console.error("Upload error:", error);
-              toast.error((error as Error).message || "Failed to upload image", { id: "image-upload" });
-              setLandscapeProgress(0);
-              setIsUploading(false);
-              return;
+            // Add landscape file if present
+            if (landscapeFiles.length > 0 && landscapeFiles[0]) {
+              formData.set("landscapeFile", landscapeFiles[0]);
+              setLandscapeProgress(30);
+            } else if (about?.hero.landscapeImage) {
+              // Use existing image URL if no new file
+              formData.set("landscapeImageUrl", about.hero.landscapeImage);
             }
-          } else if (about?.hero.landscapeImage) {
-            // Use existing image if no new file
-            formData.append("landscapeImageUrl", about.hero.landscapeImage);
-          }
 
-          // Show toast for Firestore submission
-          toast.loading("Saving to database...", { id: "firestore-save" });
-          setLandscapeProgress(95);
-          startTransition(() => formAction(formData));
+            setLandscapeProgress(50);
+            const response = await fetch("/api/about", {
+              method: "POST",
+              body: formData,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              throw new Error(result.error || "Failed to save content");
+            }
+
+            setLandscapeProgress(100);
+            toast.success(
+              result.message || "About content saved successfully!",
+              {
+                id: "about-save",
+                duration: 4000,
+              }
+            );
+
+            setTimeout(() => {
+              setLandscapeFiles([]);
+              setLandscapeProgress(0);
+            }, 1000);
+          } catch (error) {
+            console.error("About save error:", error);
+            toast.error((error as Error).message || "Failed to save content", {
+              id: "about-save",
+              duration: 4000,
+            });
+            setLandscapeProgress(0);
+          } finally {
+            setIsSaving(false);
+          }
         }}
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -262,7 +242,8 @@ export function AboutForm({ about }: AboutFormProps) {
               id="heroIntro"
               name="heroIntro"
               rows={3}
-              defaultValue={about?.hero.intro ?? ""}
+              value={heroIntro}
+              onChange={(e) => setHeroIntro(e.target.value)}
               className="bg-brand-background text-brand-text"
               placeholder="Studio of G10 – Portraits & Life Stories..."
             />
@@ -280,12 +261,12 @@ export function AboutForm({ about }: AboutFormProps) {
                   ? [about.hero.landscapeImage]
                   : undefined
               }
-              disabled={isUploading || pending}
+              disabled={isSaving}
             />
-            {(isUploading || landscapeProgress > 0) && (
+            {landscapeProgress > 0 && (
               <div className="space-y-2 rounded-lg border border-brand-muted/40 bg-brand-surface/50 p-4">
                 <div className="flex items-center gap-2">
-                  {isUploading ? (
+                  {isSaving ? (
                     <Loader2 className="h-4 w-4 animate-spin text-brand-accent" />
                   ) : landscapeProgress === 100 ? (
                     <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -293,13 +274,11 @@ export function AboutForm({ about }: AboutFormProps) {
                     <Upload className="h-4 w-4 text-brand-accent" />
                   )}
                   <span className="text-sm font-medium text-brand-text">
-                    {isUploading
-                      ? "Uploading image to storage..."
+                    {isSaving
+                      ? "Saving content..."
                       : landscapeProgress === 100
-                        ? "Image uploaded successfully"
-                        : pending
-                          ? "Saving to database..."
-                          : "Preparing upload..."}
+                      ? "Content saved successfully"
+                      : "Preparing..."}
                   </span>
                 </div>
                 {landscapeProgress > 0 && landscapeProgress < 100 && (

@@ -5,7 +5,6 @@ import {
   createPhoto,
   deletePhoto,
   updatePhoto,
-  uploadPhotoFile,
 } from "@/utils/data-access/photos";
 import type { ActionState } from "./action-state";
 import type { EventType } from "@/utils/types";
@@ -15,22 +14,18 @@ export async function createPhotoAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
-    const imageFile = formData.get("image") as File | null;
-    let url = formData.get("url")?.toString() ?? "";
+    // Get image URL from form (uploaded via API route)
+    const imageUrl = formData.get("imageUrl")?.toString().trim() ?? "";
 
-    if (imageFile && imageFile.size > 0) {
-      const uploaded = await uploadPhotoFile(imageFile);
-      if (uploaded) {
-        url = uploaded;
-      }
+    if (!imageUrl) {
+      throw new Error("Image URL is required. Please upload an image file.");
     }
-
-    if (!url) throw new Error("Image URL is required.");
 
     await createPhoto({
       title: formData.get("title")?.toString() ?? "",
-      url,
-      eventType: (formData.get("eventType")?.toString() ?? "Other") as EventType,
+      url: imageUrl,
+      eventType: (formData.get("eventType")?.toString() ??
+        "Other") as EventType,
       isFavorite: formData.get("isFavorite") === "on",
     });
 
@@ -74,4 +69,3 @@ export async function deletePhotoAction(
     return { status: "error", message: (error as Error).message };
   }
 }
-

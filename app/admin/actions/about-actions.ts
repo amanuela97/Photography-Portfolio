@@ -23,9 +23,12 @@ export async function saveAboutAction(
       formData.get("landscapeImageUrl")?.toString().trim() ?? "";
     const landscapeImage = landscapeImageUrl;
 
+    const heroIntro = formData.get("heroIntro")?.toString() ?? "";
+    console.log("Server action - heroIntro from FormData:", heroIntro);
+
     const payload: AboutDocument = {
       hero: {
-        intro: formData.get("heroIntro")?.toString() ?? "",
+        intro: heroIntro, // Use the already-extracted value instead of reading from FormData again
         landscapeImage,
       },
       story: {

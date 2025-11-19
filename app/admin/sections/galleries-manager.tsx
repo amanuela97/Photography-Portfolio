@@ -1,14 +1,21 @@
-import { getGalleries } from "@/utils/data-access/galleries";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { GalleryCreateForm } from "./gallery-create-form";
-import { GalleryList } from "./gallery-list";
 
 export default async function GalleriesManager() {
-  const galleries = await getGalleries();
   return (
     <div className="space-y-8">
+      <div className="flex justify-end">
+        <Link href="/admin/gallery">
+          <Button
+            variant="outline"
+            className="bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          >
+            Manage Galleries
+          </Button>
+        </Link>
+      </div>
       <GalleryCreateForm />
-      <GalleryList galleries={galleries} />
     </div>
   );
 }
-

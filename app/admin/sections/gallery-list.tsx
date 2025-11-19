@@ -1,7 +1,8 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
 import {
   Card,
   CardContent,
@@ -18,11 +19,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
-import {
-  deleteGalleryAction,
-  updateGalleryAction,
-} from "../actions/galleries-actions";
-import { initialActionState } from "../actions/action-state";
 import { MediaDropzone } from "../components/media-dropzone";
 
 interface GalleryListProps {
@@ -53,14 +49,6 @@ export function GalleryList({ galleries }: GalleryListProps) {
 }
 
 function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
-  const [updateState, updateAction] = useActionState(
-    updateGalleryAction,
-    initialActionState()
-  );
-  const [deleteState, deleteAction] = useActionState(
-    deleteGalleryAction,
-    initialActionState()
-  );
   const [pendingUpdate, setPendingUpdate] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [coverFiles, setCoverFiles] = useState<File[]>([]);
@@ -77,43 +65,6 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
   );
   const [existingVideo, setExistingVideo] = useState(gallery.video ?? "");
 
-  useEffect(() => {
-    if (updateState.status === "success") {
-      setPendingUpdate(false);
-      toast.success("Gallery updated.");
-      if (coverFiles.length) setCoverProgress(100);
-      if (imageFiles.length) setImagesProgress(100);
-      if (videoFiles.length) setVideoProgress(100);
-      setTimeout(() => {
-        setCoverProgress(0);
-        setImagesProgress(0);
-        setVideoProgress(0);
-      }, 800);
-      setCoverFiles([]);
-      setImageFiles([]);
-      setVideoFiles([]);
-    } else if (updateState.status === "error") {
-      setPendingUpdate(false);
-      toast.error(updateState.message ?? "Update failed.");
-      setCoverProgress(0);
-      setImagesProgress(0);
-      setVideoProgress(0);
-    } else if (updateState.status === "idle") {
-      setPendingUpdate(false);
-    }
-  }, [updateState, coverFiles.length, imageFiles.length, videoFiles.length]);
-
-  useEffect(() => {
-    if (deleteState.status === "success") {
-      setPendingDelete(false);
-      toast.success("Gallery deleted.");
-    } else if (deleteState.status === "error") {
-      setPendingDelete(false);
-      toast.error(deleteState.message ?? "Delete failed.");
-    } else if (deleteState.status === "idle") {
-      setPendingDelete(false);
-    }
-  }, [deleteState]);
 
   useEffect(() => {
     if (coverFiles.length === 0) {
@@ -159,16 +110,80 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
         <CardDescription className="text-brand-muted">
           {gallery.slug} • Updated{" "}
           {gallery.updatedAt
-            ? new Date(gallery.updatedAt).toLocaleDateString()
+            ? format(new Date(gallery.updatedAt), "MMM d, yyyy")
             : "—"}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form
           className="grid gap-4"
-          action={async (formData) => {
-            setPendingUpdate(true);
-            await updateAction(formData);
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              setPendingUpdate(true);
+              setCoverProgress(10);
+              setImagesProgress(10);
+              setVideoProgress(10);
+              toast.loading("Updating gallery...", { id: `gallery-update-${gallery.id}` });
+
+              const form = e.currentTarget;
+              const formData = new FormData(form);
+
+              // Add files if present
+              if (coverFiles.length > 0 && coverFiles[0]) {
+                formData.set("coverImage", coverFiles[0]);
+              }
+              imageFiles.forEach((file) => {
+                formData.append("galleryImages", file);
+              });
+              if (videoFiles.length > 0 && videoFiles[0]) {
+                formData.set("galleryVideo", videoFiles[0]);
+              }
+
+              setCoverProgress(30);
+              setImagesProgress(30);
+              setVideoProgress(30);
+
+              const response = await fetch("/api/galleries", {
+                method: "PUT",
+                body: formData,
+              });
+
+              const result = await response.json();
+
+              if (!response.ok) {
+                throw new Error(result.error || "Failed to update gallery");
+              }
+
+              setCoverProgress(100);
+              setImagesProgress(100);
+              setVideoProgress(100);
+              toast.success(result.message || "Gallery updated successfully!", {
+                id: `gallery-update-${gallery.id}`,
+                duration: 4000,
+              });
+
+              setTimeout(() => {
+                setCoverProgress(0);
+                setImagesProgress(0);
+                setVideoProgress(0);
+              }, 800);
+
+              setCoverFiles([]);
+              setImageFiles([]);
+              setVideoFiles([]);
+            } catch (error) {
+              console.error("Gallery update error:", error);
+              toast.error(
+                (error as Error).message || "Failed to update gallery",
+                { id: `gallery-update-${gallery.id}`, duration: 4000 }
+              );
+              setCoverProgress(0);
+              setImagesProgress(0);
+              setVideoProgress(0);
+            } finally {
+              setPendingUpdate(false);
+            }
           }}
         >
           <input type="hidden" name="id" value={gallery.id} />
@@ -263,10 +278,37 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
                 variant="destructive"
                 disabled={pendingDelete}
                 onClick={async () => {
-                  setPendingDelete(true);
-                  const formData = new FormData();
-                  formData.append("id", gallery.id);
-                  await deleteAction(formData);
+                  try {
+                    setPendingDelete(true);
+                    toast.loading("Deleting gallery...", { id: `gallery-delete-${gallery.id}` });
+
+                    const formData = new FormData();
+                    formData.append("id", gallery.id);
+
+                    const response = await fetch("/api/galleries", {
+                      method: "DELETE",
+                      body: formData,
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                      throw new Error(result.error || "Failed to delete gallery");
+                    }
+
+                    toast.success(result.message || "Gallery deleted successfully!", {
+                      id: `gallery-delete-${gallery.id}`,
+                      duration: 4000,
+                    });
+                  } catch (error) {
+                    console.error("Gallery delete error:", error);
+                    toast.error(
+                      (error as Error).message || "Failed to delete gallery",
+                      { id: `gallery-delete-${gallery.id}`, duration: 4000 }
+                    );
+                  } finally {
+                    setPendingDelete(false);
+                  }
                 }}
               >
                 {pendingDelete ? "Deleting..." : "Delete"}

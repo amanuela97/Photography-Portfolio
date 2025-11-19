@@ -74,6 +74,8 @@ export type EventType =
   | "Birthdays"
   | "Ceremonies"
   | "Anniversaries"
+  | "Engagements"
+  | "Graduation"
   | "Other";
 
 export interface GalleryDocument {

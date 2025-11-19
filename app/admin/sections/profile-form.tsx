@@ -86,7 +86,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           type="submit"
           form="profile-form"
           disabled={pending}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          className="ml-auto cursor-pointer bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
         >
           {pending ? "Saving..." : "Save changes"}
         </Button>
@@ -171,7 +171,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               type="button"
               variant="secondary"
               onClick={handleAddSocial}
-              className="bg-brand-background text-brand-primary hover:bg-brand-accent/20"
+              className="bg-brand-background text-brand-primary hover:bg-brand-accent/20 cursor-pointer"
             >
               Add link
             </Button>
@@ -214,15 +214,17 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                     required
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => handleRemoveSocial(index)}
-                  disabled={socials.length === 1}
-                  className="text-brand-primary"
-                >
-                  Remove
-                </Button>
+                {socials.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => handleRemoveSocial(index)}
+                    disabled={socials.length === 1}
+                    className="text-brand-primary"
+                  >
+                    Remove
+                  </Button>
+                )}
               </div>
             ))}
           </div>

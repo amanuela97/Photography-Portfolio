@@ -71,3 +71,38 @@ export async function deleteFilesInFolder(folder: string): Promise<void> {
 function trimSlashes(path: string): string {
   return path.replace(/^\/+|\/+$/g, "");
 }
+
+/**
+ * Delete a file from Firebase Storage by extracting the path from a signed URL
+ * @param signedUrl The signed URL of the file to delete
+ */
+export async function deleteFileByUrl(signedUrl: string): Promise<void> {
+  if (!adminStorage) {
+    throw new Error("Firebase Storage is not configured.");
+  }
+
+  try {
+    // Extract the file path from the signed URL
+    // Firebase Storage signed URLs have the format:
+    // https://storage.googleapis.com/BUCKET_NAME/FILE_PATH?signature=...
+    const url = new URL(signedUrl);
+    const pathMatch = url.pathname.match(/\/[^\/]+\/(.+)$/);
+    
+    if (!pathMatch || !pathMatch[1]) {
+      throw new Error("Could not extract file path from URL");
+    }
+
+    const filePath = decodeURIComponent(pathMatch[1]);
+    const file = adminStorage.file(filePath);
+    
+    // Check if file exists before deleting
+    const [exists] = await file.exists();
+    if (exists) {
+      await file.delete();
+    }
+  } catch (error) {
+    console.error("Error deleting file from storage:", error);
+    // Don't throw - allow deletion to continue even if storage deletion fails
+    // This prevents orphaned documents if storage deletion fails
+  }
+}

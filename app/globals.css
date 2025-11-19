@@ -62,4 +62,16 @@
     line-height: 1.5;
     max-width: 65ch;
   }
+
+  button,
+  [role="button"],
+  a,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  label[for],
+  summary,
+  select {
+    @apply cursor-pointer;
+  }
 }

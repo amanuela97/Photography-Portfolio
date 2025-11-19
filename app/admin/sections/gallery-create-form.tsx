@@ -1,101 +1,34 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormShell } from "../components/form-shell";
-import { createGalleryAction } from "../actions/galleries-actions";
-import { initialActionState } from "../actions/action-state";
 import toast from "react-hot-toast";
 import { MediaDropzone } from "../components/media-dropzone";
+import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
 
 export function GalleryCreateForm() {
-  const [state, formAction] = useActionState(
-    createGalleryAction,
-    initialActionState()
-  );
-  const [pending, startTransition] = useTransition();
+  const [isCreating, setIsCreating] = useState(false);
   const [coverFiles, setCoverFiles] = useState<File[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [videoFiles, setVideoFiles] = useState<File[]>([]);
   const [coverProgress, setCoverProgress] = useState(0);
   const [imagesProgress, setImagesProgress] = useState(0);
   const [videoProgress, setVideoProgress] = useState(0);
-  const [formKey, setFormKey] = useState(() => Date.now());
+  const [slugInput, setSlugInput] = useState("");
+  const [slugError, setSlugError] = useState<string | null>(null);
+  // Use a counter instead of Date.now() to avoid hydration mismatches
+  const [formKey, setFormKey] = useState(0);
 
-  useEffect(() => {
-    if (state.status === "success") {
-      toast.success(state.message ?? "Gallery created.");
-      if (coverFiles.length) setCoverProgress(100);
-      if (imageFiles.length) setImagesProgress(100);
-      if (videoFiles.length) setVideoProgress(100);
-      const timeout = setTimeout(() => {
-        setCoverProgress(0);
-        setImagesProgress(0);
-        setVideoProgress(0);
-      }, 800);
-      const form = document.getElementById(
-        "gallery-create-form"
-      ) as HTMLFormElement | null;
-      form?.reset();
-      setCoverFiles([]);
-      setImageFiles([]);
-      setVideoFiles([]);
-      setFormKey(Date.now());
-      return () => clearTimeout(timeout);
-    } else if (state.status === "error") {
-      toast.error(state.message ?? "Unable to create gallery.");
-      setCoverProgress(0);
-      setImagesProgress(0);
-      setVideoProgress(0);
-    }
-  }, [state, coverFiles.length, imageFiles.length, videoFiles.length]);
-
-  useEffect(() => {
-    if (coverFiles.length === 0) {
-      setCoverProgress(0);
-      return;
-    }
-    if (pending) {
-      setCoverProgress((prev) => (prev < 60 ? 60 : prev));
-    } else if (state.status === "success") {
-      setCoverProgress(100);
-    } else if (state.status === "error") {
-      setCoverProgress(0);
-    }
-  }, [pending, state.status, coverFiles.length]);
-
-  useEffect(() => {
-    if (imageFiles.length === 0) {
-      setImagesProgress(0);
-      return;
-    }
-    if (pending) {
-      setImagesProgress((prev) => (prev < 60 ? 60 : prev));
-    } else if (state.status === "success") {
-      setImagesProgress(100);
-    } else if (state.status === "error") {
-      setImagesProgress(0);
-    }
-  }, [pending, state.status, imageFiles.length]);
-
-  useEffect(() => {
-    if (videoFiles.length === 0) {
-      setVideoProgress(0);
-      return;
-    }
-    if (pending) {
-      setVideoProgress((prev) => (prev < 60 ? 60 : prev));
-    } else if (state.status === "success") {
-      setVideoProgress(100);
-    } else if (state.status === "error") {
-      setVideoProgress(0);
-    }
-  }, [pending, state.status, videoFiles.length]);
+  const handleSlugChange = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    setSlugInput(cleaned);
+    setSlugError(null);
+  };
 
   return (
     <FormShell
@@ -105,18 +38,106 @@ export function GalleryCreateForm() {
         <Button
           type="submit"
           form="gallery-create-form"
-          disabled={pending}
+          disabled={isCreating}
           className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
         >
-          {pending ? "Creating..." : "Create gallery"}
+          {isCreating ? "Creating..." : "Create gallery"}
         </Button>
       }
     >
       <form
         id="gallery-create-form"
         className="grid gap-6 md:grid-cols-2"
-        action={(formData) => startTransition(() => formAction(formData))}
         key={formKey}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            setIsCreating(true);
+            setCoverProgress(10);
+            setImagesProgress(10);
+            setVideoProgress(10);
+            toast.loading("Creating gallery...", { id: "gallery-create" });
+
+            const form = e.currentTarget;
+            const formData = new FormData(form);
+            const normalizedSlug = slugify(slugInput);
+
+            if (!normalizedSlug) {
+              setSlugError(
+                "Please enter a slug using letters, numbers, or dashes."
+              );
+              throw new Error("Slug is required.");
+            }
+
+            formData.set("slug", normalizedSlug);
+            setSlugError(null);
+
+            // Add files if present
+            if (coverFiles.length > 0 && coverFiles[0]) {
+              formData.set("coverImage", coverFiles[0]);
+            }
+            imageFiles.forEach((file) => {
+              formData.append("galleryImages", file);
+            });
+            if (videoFiles.length > 0 && videoFiles[0]) {
+              formData.set("galleryVideo", videoFiles[0]);
+            }
+
+            setCoverProgress(30);
+            setImagesProgress(30);
+            setVideoProgress(30);
+
+            const response = await fetch("/api/galleries", {
+              method: "POST",
+              body: formData,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+              if (response.status === 409) {
+                setSlugError(
+                  result.error ||
+                    "That slug already exists. Please choose another."
+                );
+              }
+              throw new Error(result.error || "Failed to create gallery");
+            }
+
+            setCoverProgress(100);
+            setImagesProgress(100);
+            setVideoProgress(100);
+            toast.success(result.message || "Gallery created successfully!", {
+              id: "gallery-create",
+              duration: 4000,
+            });
+
+            setTimeout(() => {
+              setCoverProgress(0);
+              setImagesProgress(0);
+              setVideoProgress(0);
+            }, 800);
+
+            form.reset();
+            setCoverFiles([]);
+            setImageFiles([]);
+            setVideoFiles([]);
+            setSlugInput("");
+            setSlugError(null);
+            setFormKey((prev) => prev + 1);
+          } catch (error) {
+            console.error("Gallery create error:", error);
+            toast.error(
+              (error as Error).message || "Failed to create gallery",
+              { id: "gallery-create", duration: 4000 }
+            );
+            setCoverProgress(0);
+            setImagesProgress(0);
+            setVideoProgress(0);
+          } finally {
+            setIsCreating(false);
+          }
+        }}
       >
         <div className="space-y-2">
           <Label htmlFor="slug">Slug</Label>
@@ -125,8 +146,18 @@ export function GalleryCreateForm() {
             name="slug"
             placeholder="emma-mikko"
             className="bg-brand-background text-brand-text"
+            value={slugInput}
+            onChange={(e) => handleSlugChange(e.target.value)}
+            onBlur={(e) => handleSlugChange(slugify(e.target.value))}
+            pattern={SLUG_INPUT_PATTERN}
             required
           />
+          <p className="text-xs text-brand-muted">
+            Use lowercase letters, numbers, and dashes. Example: emma-mikko
+          </p>
+          {slugError ? (
+            <p className="text-xs text-destructive">{slugError}</p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <Label htmlFor="title">Title</Label>

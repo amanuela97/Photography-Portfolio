@@ -13,13 +13,16 @@ export async function createTestimonialAction(
   formData: FormData
 ): Promise<ActionState> {
   try {
+    // Public submissions default to not approved and not featured
+    // Only admins can set these via the admin panel
     await createTestimonial({
       quote: formData.get("quote")?.toString() ?? "",
       author: formData.get("author")?.toString() ?? "",
-      isApproved: formData.get("isApproved") === "on",
-      isFeatured: formData.get("isFeatured") === "on",
+      isApproved: formData.get("isApproved") === "on" || false,
+      isFeatured: formData.get("isFeatured") === "on" || false,
     });
     revalidatePath("/admin");
+    revalidatePath("/testimonial/create");
     return { status: "success", message: "Testimonial created." };
   } catch (error) {
     console.error(error);
@@ -63,4 +66,3 @@ export async function deleteTestimonialAction(
     return { status: "error", message: (error as Error).message };
   }
 }
-

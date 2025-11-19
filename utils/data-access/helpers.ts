@@ -1,6 +1,11 @@
 import { Timestamp } from "firebase-admin/firestore";
 import type { TimestampLike } from "@/utils/types";
 
+export function extractExtension(name: string): string {
+  const match = name.match(/\.[^/.]+$/);
+  return match ? match[0] : "";
+}
+
 export function toISOString(value: TimestampLike): string | undefined {
   if (!value) {
     return undefined;
@@ -35,4 +40,3 @@ export function parseJsonField<T>(value: FormDataEntryValue | null): T | null {
     return null;
   }
 }
-
