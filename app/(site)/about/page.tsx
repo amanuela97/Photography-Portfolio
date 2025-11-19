@@ -79,7 +79,7 @@ export default async function AboutPage() {
 
       {/* Behind the Scenes / Process */}
       {process && (
-        <section className="py-32 px-6 bg-brand-background">
+        <section className="py-32 px-6 bg-[#EDE6E3]">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-brand-primary mb-4 text-center leading-tight">
               How I <em className="font-normal text-5xl md:text-6xl">Work</em>
@@ -177,7 +177,7 @@ export default async function AboutPage() {
 
       {/* Favorite Shots Gallery */}
       {favoritePhotos && (
-        <section className="py-32 px-6 bg-brand-background">
+        <section className="py-32 px-6  bg-[#EDE6E3]">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold text-brand-primary mb-4 text-center leading-tight">
               <em className="font-normal text-5xl md:text-6xl">Favorite</em>{" "}

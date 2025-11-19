@@ -114,7 +114,7 @@ export function HomePageContent({
                 </Link>
               </div>
               <div className="relative">
-                <div className="picture-frame border-4 border-gold rounded-lg bg-[url('/ornate-pattern.png')] bg-repeat">
+                <div className="picture-frame border-4 border-gold rounded-lg bg-repeat">
                   <div className="relative h-[550px] rounded-sm overflow-hidden">
                     <Image
                       src="/profile-portrait.PNG"

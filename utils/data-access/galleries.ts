@@ -8,13 +8,19 @@ const COLLECTION = "galleries";
 const MAX_FEATURED = 4;
 
 export async function getGalleries(): Promise<GalleryDocument[]> {
-  const snap = await adminDb
-    .collection(COLLECTION)
-    .orderBy("createdAt", "desc")
-    .get();
-  return snap.docs.map((doc) =>
-    serializeGallery(doc.id, doc.data() as GalleryDocument)
-  );
+  try {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snap.docs.map((doc) =>
+      serializeGallery(doc.id, doc.data() as GalleryDocument)
+    );
+  } catch (error) {
+    console.error("Error fetching galleries:", error);
+    // Return empty array on error to prevent page crashes
+    return [];
+  }
 }
 
 export async function getGalleryById(
@@ -30,16 +36,22 @@ export async function getGalleryById(
 export async function getGalleryBySlug(
   slug: string
 ): Promise<GalleryDocument | null> {
-  const snap = await adminDb
-    .collection(COLLECTION)
-    .where("slug", "==", slug)
-    .limit(1)
-    .get();
-  if (snap.empty) {
+  try {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("slug", "==", slug)
+      .limit(1)
+      .get();
+    if (snap.empty) {
+      return null;
+    }
+    const doc = snap.docs[0];
+    return serializeGallery(doc.id, doc.data() as GalleryDocument);
+  } catch (error) {
+    console.error(`Error fetching gallery by slug "${slug}":`, error);
+    // Return null on error to trigger 404
     return null;
   }
-  const doc = snap.docs[0];
-  return serializeGallery(doc.id, doc.data() as GalleryDocument);
 }
 
 export async function getFeaturedGalleries(

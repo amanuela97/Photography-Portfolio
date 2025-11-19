@@ -26,7 +26,7 @@ export function Navbar() {
       href: "#",
       hasDropdown: true,
       dropdownItems: [
-        { label: "Galleries", href: "/galleries" },
+        { label: "Galleries", href: "/gallery" },
         { label: "Photos", href: "/photos" },
         { label: "Videos", href: "/videos" },
       ],

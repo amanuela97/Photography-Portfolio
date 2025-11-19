@@ -8,13 +8,19 @@ const COLLECTION = "photos";
 const MAX_FAVORITES = 6;
 
 export async function getPhotos(): Promise<PhotoDocument[]> {
-  const snap = await adminDb
-    .collection(COLLECTION)
-    .orderBy("createdAt", "desc")
-    .get();
-  return snap.docs.map((doc) =>
-    serializePhoto(doc.id, doc.data() as PhotoDocument)
-  );
+  try {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .orderBy("createdAt", "desc")
+      .get();
+    return snap.docs.map((doc) =>
+      serializePhoto(doc.id, doc.data() as PhotoDocument)
+    );
+  } catch (error) {
+    console.error("Error fetching photos:", error);
+    // Return empty array on error to prevent page crashes
+    return [];
+  }
 }
 
 export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
