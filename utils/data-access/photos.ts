@@ -17,6 +17,46 @@ export async function getPhotos(): Promise<PhotoDocument[]> {
   );
 }
 
+export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
+  try {
+    // Try query with orderBy (requires composite index)
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("isFavorite", "==", true)
+      .orderBy("updatedAt", "desc")
+      .limit(limit)
+      .get();
+
+    return snap.docs.map((doc) =>
+      serializePhoto(doc.id, doc.data() as PhotoDocument)
+    );
+  } catch (error) {
+    // Fallback: query without orderBy and sort in memory
+    // This avoids requiring a composite index
+    console.warn(
+      "getFavoritePhotos: Composite index not found, using fallback query",
+      error
+    );
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("isFavorite", "==", true)
+      .get();
+
+    const photos = snap.docs.map((doc) =>
+      serializePhoto(doc.id, doc.data() as PhotoDocument)
+    );
+
+    // Sort by updatedAt in memory and limit
+    return photos
+      .sort((a, b) => {
+        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return bTime - aTime;
+      })
+      .slice(0, limit);
+  }
+}
+
 export async function createPhoto(
   payload: Omit<PhotoDocument, "id" | "createdAt" | "updatedAt">
 ): Promise<void> {

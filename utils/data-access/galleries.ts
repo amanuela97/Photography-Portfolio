@@ -42,6 +42,48 @@ export async function getGalleryBySlug(
   return serializeGallery(doc.id, doc.data() as GalleryDocument);
 }
 
+export async function getFeaturedGalleries(
+  limit = MAX_FEATURED
+): Promise<GalleryDocument[]> {
+  try {
+    // Try query with orderBy (requires composite index)
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("isFeatured", "==", true)
+      .orderBy("updatedAt", "desc")
+      .limit(limit)
+      .get();
+
+    return snap.docs.map((doc) =>
+      serializeGallery(doc.id, doc.data() as GalleryDocument)
+    );
+  } catch (error) {
+    // Fallback: query without orderBy and sort in memory
+    // This avoids requiring a composite index
+    console.warn(
+      "getFeaturedGalleries: Composite index not found, using fallback query",
+      error
+    );
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("isFeatured", "==", true)
+      .get();
+
+    const galleries = snap.docs.map((doc) =>
+      serializeGallery(doc.id, doc.data() as GalleryDocument)
+    );
+
+    // Sort by updatedAt in memory and limit
+    return galleries
+      .sort((a, b) => {
+        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+        return bTime - aTime;
+      })
+      .slice(0, limit);
+  }
+}
+
 export async function createGallery(
   payload: Omit<GalleryDocument, "id" | "createdAt" | "updatedAt">
 ): Promise<void> {
