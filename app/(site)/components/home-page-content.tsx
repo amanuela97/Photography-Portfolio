@@ -69,8 +69,8 @@ export function HomePageContent({
             <h1 className="text-6xl md:text-7xl font-bold mb-4 text-balance leading-tight">
               Capturing
               <em className="font-normal text-4xl md:text-6xl block md:inline">
-                {"  "}
-                Moments
+                {" "}
+                Moments{" "}
               </em>
               That Matter
             </h1>
