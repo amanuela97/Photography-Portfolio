@@ -140,14 +140,14 @@ export function Navbar() {
 
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 bg-white text-brand-primary flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-brand-muted/40">
+          <div className="flex items-center justify-between bg-brand-accent px-6 py-4 border-b border-brand-muted/40">
             <Link
               href="/"
               className="flex items-center"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <Image
-                src="/logo-last.png"
+                src="/web-logo.png"
                 alt="Studio of G10"
                 width={180}
                 height={120}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   uploadFileToStorage,
   uploadMultipleFiles,
@@ -18,6 +18,9 @@ import { slugify, isValidSlug } from "@/utils/slug";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const GALLERIES_TAG = "galleries";
+const FEATURED_GALLERIES_TAG = "featured-galleries";
 
 function getSingleFile(formData: FormData, field: string): File | null {
   const entry = formData.get(field);
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existing = await getGalleryBySlug(normalizedSlug);
+    const existing = await getGalleryBySlug(normalizedSlug, { fresh: true });
     if (existing) {
       return NextResponse.json(
         { error: "That slug is already in use. Please choose another one." },
@@ -98,6 +101,8 @@ export async function POST(request: NextRequest) {
     // Revalidate public-facing pages
     revalidatePath("/galleries");
     revalidatePath("/");
+    revalidateTag(GALLERIES_TAG, "default");
+    revalidateTag(FEATURED_GALLERIES_TAG, "default");
 
     return NextResponse.json({
       success: true,
@@ -124,7 +129,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const existingGallery = await getGalleryById(id);
+    const existingGallery = await getGalleryById(id, { fresh: true });
     if (!existingGallery) {
       return NextResponse.json(
         { error: "Gallery not found." },
@@ -147,7 +152,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (slug) {
-      const existing = await getGalleryBySlug(slug);
+      const existing = await getGalleryBySlug(slug, { fresh: true });
       if (existing && existing.id !== id) {
         return NextResponse.json(
           { error: "That slug is already in use. Please choose another one." },
@@ -241,6 +246,8 @@ export async function PUT(request: NextRequest) {
     if (resultingSlug) {
       revalidatePath(`/galleries/${resultingSlug}`);
     }
+    revalidateTag(GALLERIES_TAG, "default");
+    revalidateTag(FEATURED_GALLERIES_TAG, "default");
 
     return NextResponse.json({
       success: true,
@@ -294,6 +301,8 @@ export async function DELETE(request: NextRequest) {
     if (slug) {
       revalidatePath(`/galleries/${slug}`);
     }
+    revalidateTag(GALLERIES_TAG, "default");
+    revalidateTag(FEATURED_GALLERIES_TAG, "default");
 
     return NextResponse.json({
       success: true,

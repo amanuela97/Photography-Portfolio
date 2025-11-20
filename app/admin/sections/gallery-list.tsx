@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
 import { MediaDropzone } from "../components/media-dropzone";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface GalleryListProps {
   galleries: GalleryDocument[];
@@ -64,6 +65,10 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
     gallery.coverImageUrl ?? ""
   );
   const [existingVideo, setExistingVideo] = useState(gallery.video ?? "");
+
+  const coverPreview = existingCover
+    ? appendCacheBuster(existingCover, gallery.updatedAt)
+    : undefined;
 
 
   useEffect(() => {
@@ -232,7 +237,7 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
             accept={{ "image/*": [] }}
             progress={coverProgress}
             onFilesChange={setCoverFiles}
-            existingFiles={existingCover ? [existingCover] : undefined}
+            existingFiles={coverPreview ? [coverPreview] : undefined}
             onRemoveExisting={() => setExistingCover("")}
           />
           <MediaDropzone

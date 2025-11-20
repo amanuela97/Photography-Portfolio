@@ -1,15 +1,19 @@
 "use server";
 
-import { unstable_noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { TestimonialDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
 
 const COLLECTION = "testimonials";
 const MAX_FEATURED = 4;
+const CACHE_TTL = 3600;
 
-export async function getTestimonials(): Promise<TestimonialDocument[]> {
-  unstable_noStore();
+type FetchOptions = {
+  fresh?: boolean;
+};
+
+async function fetchTestimonialsFromDb(): Promise<TestimonialDocument[]> {
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -20,17 +24,14 @@ export async function getTestimonials(): Promise<TestimonialDocument[]> {
     );
   } catch (error) {
     console.error("Error fetching testimonials:", error);
-    // Return empty array on error to prevent page crashes
     return [];
   }
 }
 
-export async function getFeaturedTestimonials(
+async function fetchFeaturedTestimonialsFromDb(
   limit = MAX_FEATURED
 ): Promise<TestimonialDocument[]> {
-  unstable_noStore();
   try {
-    // Try query with orderBy (requires composite index)
     const snap = await adminDb
       .collection(COLLECTION)
       .where("isFeatured", "==", true)
@@ -42,8 +43,6 @@ export async function getFeaturedTestimonials(
       serializeTestimonial(doc.id, doc.data() as TestimonialDocument)
     );
   } catch (error) {
-    // Fallback: query without orderBy and sort in memory
-    // This avoids requiring a composite index
     console.warn(
       "getFeaturedTestimonials: Composite index not found, using fallback query",
       error
@@ -57,7 +56,6 @@ export async function getFeaturedTestimonials(
       serializeTestimonial(doc.id, doc.data() as TestimonialDocument)
     );
 
-    // Sort by updatedAt in memory and limit
     return testimonials
       .sort((a, b) => {
         const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -66,6 +64,33 @@ export async function getFeaturedTestimonials(
       })
       .slice(0, limit);
   }
+}
+
+const getTestimonialsCached = unstable_cache(
+  fetchTestimonialsFromDb,
+  ["data-access", "testimonials", "list"],
+  { revalidate: CACHE_TTL, tags: ["testimonials"] }
+);
+
+const getFeaturedTestimonialsCached = unstable_cache(
+  fetchFeaturedTestimonialsFromDb,
+  ["data-access", "testimonials", "featured"],
+  { revalidate: CACHE_TTL, tags: ["featured-testimonials"] }
+);
+
+export async function getTestimonials(
+  options?: FetchOptions
+): Promise<TestimonialDocument[]> {
+  return options?.fresh ? fetchTestimonialsFromDb() : getTestimonialsCached();
+}
+
+export async function getFeaturedTestimonials(
+  limit = MAX_FEATURED,
+  options?: FetchOptions
+): Promise<TestimonialDocument[]> {
+  return options?.fresh
+    ? fetchFeaturedTestimonialsFromDb(limit)
+    : getFeaturedTestimonialsCached(limit);
 }
 
 export async function createTestimonial(

@@ -7,21 +7,21 @@ import { AnimatedHeroImage } from "../../components/animated-hero-image";
 import { AnimatedImage } from "../../components/animated-image";
 import { ScrollTextAnimation } from "../../components/scroll-text-animation";
 import type { GalleryDocument } from "@/utils/types";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface GalleryContentProps {
   gallery: GalleryDocument;
 }
 
 export function GalleryContent({ gallery }: GalleryContentProps) {
+  const coverImage = gallery.coverImageUrl
+    ? appendCacheBuster(gallery.coverImageUrl, gallery.updatedAt)
+    : "/placeholder.svg";
   return (
     <main className="min-h-screen bg-ivory">
       {/* Hero Section with Cover Image */}
       <section className="relative h-[80vh] w-full overflow-hidden pt-[10vh]">
-        <AnimatedHeroImage
-          src={gallery.coverImageUrl || "/placeholder.svg"}
-          alt={gallery.title}
-          priority
-        />
+        <AnimatedHeroImage src={coverImage} alt={gallery.title} priority />
         <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/40" />
 
         <div className="relative h-full flex flex-col items-center justify-center text-center px-6 text-white mt-20">

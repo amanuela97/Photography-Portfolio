@@ -2,7 +2,7 @@ import { getGalleryBySlug } from "@/utils/data-access/galleries";
 import { notFound } from "next/navigation";
 import { GalleryContent } from "./gallery-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>;
@@ -25,4 +25,3 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
 
   return <GalleryContent gallery={gallery} />;
 }
-

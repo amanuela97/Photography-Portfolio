@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { GalleryGrid } from "./components/gallery-grid";
 
 export default async function GalleryPage() {
-  const galleries = await getGalleries();
+  const galleries = await getGalleries({ fresh: true });
 
   return (
     <div className="min-h-screen py-12 px-6">

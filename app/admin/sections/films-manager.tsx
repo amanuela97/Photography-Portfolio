@@ -3,7 +3,7 @@ import { FilmCreateForm } from "./film-create-form";
 import { FilmList } from "./film-list";
 
 export default async function FilmsManager() {
-  const films = await getFilms();
+  const films = await getFilms({ fresh: true });
   return (
     <div className="space-y-8">
       <FilmCreateForm />

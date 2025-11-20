@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   createGallery,
   deleteGallery,
@@ -12,6 +12,9 @@ import {
   uploadMultipleFiles,
 } from "@/utils/data-access/storage";
 import { parseJsonField } from "@/utils/data-access/helpers";
+
+const GALLERIES_TAG = "galleries";
+const FEATURED_GALLERIES_TAG = "featured-galleries";
 
 interface GalleryActionData {
   id?: string;
@@ -63,11 +66,13 @@ export async function createGalleryAction(
     if (slug) {
       revalidatePath(`/admin/gallery/${slug}`);
     }
-    
+
     // Revalidate public-facing pages
     revalidatePath("/galleries");
     revalidatePath("/");
-    
+    revalidateTag(GALLERIES_TAG, "default");
+    revalidateTag(FEATURED_GALLERIES_TAG, "default");
+
     return { status: "success", message: "Gallery created." };
   } catch (error) {
     console.error(error);
@@ -132,14 +137,16 @@ export async function updateGalleryAction(
     if (slug) {
       revalidatePath(`/admin/gallery/${slug}`);
     }
-    
+
     // Revalidate public-facing pages
     revalidatePath("/galleries");
     revalidatePath("/");
     if (slug) {
       revalidatePath(`/galleries/${slug}`);
     }
-    
+    revalidateTag(GALLERIES_TAG, "default");
+    revalidateTag(FEATURED_GALLERIES_TAG, "default");
+
     return { status: "success", message: "Gallery updated." };
   } catch (error) {
     console.error(error);
@@ -156,18 +163,20 @@ export async function deleteGalleryAction(
     if (!id) throw new Error("Gallery ID missing.");
     const slug = formData.get("slug")?.toString();
     await deleteGallery(id);
-    
+
     // Revalidate admin pages
     revalidatePath("/admin");
     revalidatePath("/admin/gallery");
-    
+
     // Revalidate public-facing pages
     revalidatePath("/galleries");
     revalidatePath("/");
     if (slug) {
       revalidatePath(`/galleries/${slug}`);
     }
-    
+    revalidateTag(GALLERIES_TAG, "default");
+    revalidateTag(FEATURED_GALLERIES_TAG, "default");
+
     return { status: "success", message: "Gallery deleted." };
   } catch (error) {
     console.error(error);

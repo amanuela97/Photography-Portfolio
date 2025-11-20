@@ -8,6 +8,7 @@ import { Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface GalleryGridProps {
   galleries: GalleryDocument[];
@@ -80,66 +81,71 @@ export function GalleryGrid({ galleries: initialGalleries }: GalleryGridProps) {
   return (
     <div className="flex justify-center">
       <div className="w-full max-w-6xl grid grid-cols-2 gap-8">
-        {galleries.map((gallery) => (
-          <div
-            key={gallery.id}
-            className="group relative flex flex-col overflow-hidden"
-          >
-            {/* Thumbnail */}
-            <div className="relative aspect-video bg-brand-primary/10">
-              <Link
-                href={`/admin/gallery/${gallery.slug}`}
-                className="block w-full h-full"
-              >
-                {gallery.coverImageUrl ? (
-                  <Image
-                    src={gallery.coverImageUrl}
-                    alt={gallery.title}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 768px) 50vw, 100vw"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-brand-muted">
-                    No cover image
-                  </div>
-                )}
-              </Link>
-              {/* Delete button overlay */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10 bg-black/50 hover:bg-black/70 cursor-pointer"
-                disabled={pendingDelete === gallery.id}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleDelete(gallery);
-                }}
-              >
-                <Trash2 className="h-6 w-6 text-white" />
-              </Button>
-            </div>
+        {galleries.map((gallery) => {
+          const coverImage = gallery.coverImageUrl
+            ? appendCacheBuster(gallery.coverImageUrl, gallery.updatedAt)
+            : null;
+          return (
+            <div
+              key={gallery.id}
+              className="group relative flex flex-col overflow-hidden"
+            >
+              {/* Thumbnail */}
+              <div className="relative aspect-video bg-brand-primary/10">
+                <Link
+                  href={`/admin/gallery/${gallery.slug}`}
+                  className="block w-full h-full"
+                >
+                  {coverImage ? (
+                    <Image
+                      src={coverImage}
+                      alt={gallery.title}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-brand-muted">
+                      No cover image
+                    </div>
+                  )}
+                </Link>
+                {/* Delete button overlay */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 h-10 w-10 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10 bg-black/50 hover:bg-black/70 cursor-pointer"
+                  disabled={pendingDelete === gallery.id}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDelete(gallery);
+                  }}
+                >
+                  <Trash2 className="h-6 w-6 text-white" />
+                </Button>
+              </div>
 
-            {/* Title and View More */}
-            <div className="pt-4 flex-1 flex flex-col justify-between">
-              <Link href={`/admin/gallery/${gallery.slug}`} className="flex-1">
-                <h3 className="text-lg font-semibold text-brand-primary hover:text-brand-accent transition-colors mb-2">
-                  {gallery.title}
-                </h3>
-              </Link>
-              <Link
-                href={`/admin/gallery/${gallery.slug}`}
-                className="flex items-center gap-2 text-sm text-brand-accent hover:text-brand-primary transition-colors"
-              >
-                <span>View more</span>
-                <ExternalLink className="h-4 w-4" />
-              </Link>
+              {/* Title and View More */}
+              <div className="pt-4 flex-1 flex flex-col justify-between">
+                <Link href={`/admin/gallery/${gallery.slug}`} className="flex-1">
+                  <h3 className="text-lg font-semibold text-brand-primary hover:text-brand-accent transition-colors mb-2">
+                    {gallery.title}
+                  </h3>
+                </Link>
+                <Link
+                  href={`/admin/gallery/${gallery.slug}`}
+                  className="flex items-center gap-2 text-sm text-brand-accent hover:text-brand-primary transition-colors"
+                >
+                  <span>View more</span>
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

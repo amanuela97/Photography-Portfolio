@@ -2,7 +2,7 @@ import { getAbout } from "@/utils/data-access/about";
 import { getFavoritePhotos } from "@/utils/data-access/photos";
 import { AboutPageContent } from "./about-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function AboutPage() {
   let about = null;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   uploadFileToStorage,
   deleteFilesInFolder,
@@ -10,6 +10,8 @@ import { parseJsonField } from "@/utils/data-access/helpers";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const ABOUT_TAG = "about";
 
 // Image file signatures (magic bytes)
 const IMAGE_SIGNATURES: Record<string, number[][]> = {
@@ -82,16 +84,19 @@ function isValidImageFile(
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    
+
     // Parse form fields
-    const steps = parseJsonField<ProcessStep[]>(formData.get("processSteps")) ?? [];
+    const steps =
+      parseJsonField<ProcessStep[]>(formData.get("processSteps")) ?? [];
     const camera = parseJsonField<GearItem[]>(formData.get("cameraGear")) ?? [];
     const lenses = parseJsonField<GearItem[]>(formData.get("lensGear")) ?? [];
-    const software = parseJsonField<GearItem[]>(formData.get("softwareGear")) ?? [];
+    const software =
+      parseJsonField<GearItem[]>(formData.get("softwareGear")) ?? [];
 
     // Handle landscape image upload
     const landscapeFile = formData.get("landscapeFile") as File | null;
-    let landscapeImageUrl = formData.get("landscapeImageUrl")?.toString().trim() ?? "";
+    let landscapeImageUrl =
+      formData.get("landscapeImageUrl")?.toString().trim() ?? "";
 
     if (landscapeFile && landscapeFile.size > 0) {
       // Check file size (50MB limit)
@@ -152,10 +157,15 @@ export async function POST(request: NextRequest) {
     // Save to Firestore
     await saveAbout(payload);
     revalidatePath("/admin");
+    revalidateTag(ABOUT_TAG, "default");
+    await saveAbout(payload);
+    revalidatePath("/admin");
+    revalidateTag(ABOUT_TAG, "default");
 
     return NextResponse.json({
       success: true,
       message: "About content updated.",
+      landscapeImageUrl: payload.hero.landscapeImage ?? "",
     });
   } catch (error) {
     console.error("About save error:", error);
@@ -165,4 +175,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

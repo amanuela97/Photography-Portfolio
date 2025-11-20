@@ -1,8 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createFilm, deleteFilm, updateFilm } from "@/utils/data-access/films";
 import type { ActionState } from "./action-state";
+
+const FILMS_TAG = "films";
 
 export async function createFilmAction(
   _prevState: ActionState,
@@ -14,6 +16,7 @@ export async function createFilmAction(
       url: formData.get("url")?.toString() ?? "",
     });
     revalidatePath("/admin");
+    revalidateTag(FILMS_TAG, "default");
     return { status: "success", message: "Film added." };
   } catch (error) {
     console.error(error);
@@ -33,6 +36,7 @@ export async function updateFilmAction(
       url: formData.get("url")?.toString(),
     });
     revalidatePath("/admin");
+    revalidateTag(FILMS_TAG, "default");
     return { status: "success" };
   } catch (error) {
     console.error(error);
@@ -49,6 +53,7 @@ export async function deleteFilmAction(
     if (!id) throw new Error("Film ID missing.");
     await deleteFilm(id);
     revalidatePath("/admin");
+    revalidateTag(FILMS_TAG, "default");
     return { status: "success", message: "Film deleted." };
   } catch (error) {
     console.error(error);

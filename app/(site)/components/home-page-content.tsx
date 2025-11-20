@@ -13,6 +13,7 @@ import type {
   TestimonialDocument,
 } from "@/utils/types";
 import { useSiteProfile } from "./site-profile-context";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface HomePageContentProps {
   featuredGalleries: GalleryDocument[];
@@ -39,6 +40,9 @@ export function HomePageContent({
   const bioCopy =
     profile?.bio ??
     "Capturing love through art. Celebrating moments as they unfold organically.";
+  const portraitImage = profile?.portraitImage
+    ? appendCacheBuster(profile.portraitImage, profile?.updatedAt)
+    : "/profile-portrait.PNG";
 
   return (
     <main className="min-h-screen">
@@ -127,7 +131,7 @@ export function HomePageContent({
                   <div className="picture-frame border-4 border-gold rounded-lg bg-repeat">
                     <div className="relative h-[550px] rounded-sm overflow-hidden">
                       <AnimatedImage
-                        src="/profile-portrait.PNG"
+                        src={portraitImage}
                         alt={profile?.name ?? "Profile Portrait"}
                         fill
                         className="object-cover"
@@ -165,33 +169,38 @@ export function HomePageContent({
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {featuredGalleries.map((gallery, index) => (
-                <ScrollTextAnimation key={gallery.title} delay={index * 0.1}>
-                  <Card className="overflow-hidden border-none bg-white shadow-subtle hover:shadow-soft transition-all duration-300 hover:-translate-y-1">
-                    <div className="relative h-80 overflow-hidden group">
-                      <AnimatedImage
-                        src={gallery.coverImageUrl || "/placeholder.svg"}
-                        alt={gallery.title}
-                        fill
-                        className="transition-transform duration-500 group-hover:scale-105"
-                        unoptimized
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-charcoal/60 via-charcoal/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                    <div className="p-6 text-center space-y-3 bg-white">
-                      <h3 className="text-xl font-semibold text-charcoal line-clamp-1">
-                        {gallery.title}
-                      </h3>
-                      <Link
-                        href={`/galleries/${gallery.slug}`}
-                        className="inline-block text-gold hover:text-charcoal transition-colors duration-300 underline decoration-gold hover:decoration-charcoal underline-offset-4 text-sm font-medium"
-                      >
-                        view more
-                      </Link>
-                    </div>
-                  </Card>
-                </ScrollTextAnimation>
-              ))}
+              {featuredGalleries.map((gallery, index) => {
+                const coverImage = gallery.coverImageUrl
+                  ? appendCacheBuster(gallery.coverImageUrl, gallery.updatedAt)
+                  : "/placeholder.svg";
+                return (
+                  <ScrollTextAnimation key={gallery.title} delay={index * 0.1}>
+                    <Card className="overflow-hidden border-none bg-white shadow-subtle hover:shadow-soft transition-all duration-300 hover:-translate-y-1">
+                      <div className="relative h-80 overflow-hidden group">
+                        <AnimatedImage
+                          src={coverImage}
+                          alt={gallery.title}
+                          fill
+                          className="transition-transform duration-500 group-hover:scale-105"
+                          unoptimized
+                        />
+                        <div className="absolute inset-0 bg-linear-to-t from-charcoal/60 via-charcoal/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
+                      <div className="p-6 text-center space-y-3 bg-white">
+                        <h3 className="text-xl font-semibold text-charcoal line-clamp-1">
+                          {gallery.title}
+                        </h3>
+                        <Link
+                          href={`/galleries/${gallery.slug}`}
+                          className="inline-block text-gold hover:text-charcoal transition-colors duration-300 underline decoration-gold hover:decoration-charcoal underline-offset-4 text-sm font-medium"
+                        >
+                          view more
+                        </Link>
+                      </div>
+                    </Card>
+                  </ScrollTextAnimation>
+                );
+              })}
             </div>
           </div>
         </section>

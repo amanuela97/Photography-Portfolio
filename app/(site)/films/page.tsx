@@ -1,7 +1,7 @@
 import { getFilms } from "@/utils/data-access/films";
 import { FilmsContent } from "./films-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export const metadata = {
   title: "Films | Studio of G10 Photography",

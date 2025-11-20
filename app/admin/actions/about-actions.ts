@@ -1,10 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { saveAbout } from "@/utils/data-access/about";
 import type { AboutDocument, GearItem, ProcessStep } from "@/utils/types";
 import type { ActionState } from "./action-state";
 import { parseJsonField } from "@/utils/data-access/helpers";
+
+const ABOUT_TAG = "about";
 
 export async function saveAboutAction(
   _prevState: ActionState<AboutDocument>,
@@ -51,6 +53,7 @@ export async function saveAboutAction(
 
     await saveAbout(payload);
     revalidatePath("/admin");
+    revalidateTag(ABOUT_TAG, "default");
 
     return {
       status: "success",

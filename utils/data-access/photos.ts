@@ -1,15 +1,19 @@
 "use server";
 
-import { unstable_noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { adminDb, adminStorage } from "@/utils/firebase/admin";
 import type { PhotoDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
 
 const COLLECTION = "photos";
 const MAX_FAVORITES = 6;
+const CACHE_TTL = 3600;
 
-export async function getPhotos(): Promise<PhotoDocument[]> {
-  unstable_noStore();
+type FetchOptions = {
+  fresh?: boolean;
+};
+
+async function fetchPhotosFromDb(): Promise<PhotoDocument[]> {
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -20,15 +24,14 @@ export async function getPhotos(): Promise<PhotoDocument[]> {
     );
   } catch (error) {
     console.error("Error fetching photos:", error);
-    // Return empty array on error to prevent page crashes
     return [];
   }
 }
 
-export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
-  unstable_noStore();
+async function fetchFavoritePhotosFromDb(
+  limit = 3
+): Promise<PhotoDocument[]> {
   try {
-    // Try query with orderBy (requires composite index)
     const snap = await adminDb
       .collection(COLLECTION)
       .where("isFavorite", "==", true)
@@ -40,8 +43,6 @@ export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
       serializePhoto(doc.id, doc.data() as PhotoDocument)
     );
   } catch (error) {
-    // Fallback: query without orderBy and sort in memory
-    // This avoids requiring a composite index
     console.warn(
       "getFavoritePhotos: Composite index not found, using fallback query",
       error
@@ -55,7 +56,6 @@ export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
       serializePhoto(doc.id, doc.data() as PhotoDocument)
     );
 
-    // Sort by updatedAt in memory and limit
     return photos
       .sort((a, b) => {
         const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -64,6 +64,33 @@ export async function getFavoritePhotos(limit = 3): Promise<PhotoDocument[]> {
       })
       .slice(0, limit);
   }
+}
+
+const getPhotosCached = unstable_cache(
+  fetchPhotosFromDb,
+  ["data-access", "photos", "list"],
+  { revalidate: CACHE_TTL, tags: ["photos"] }
+);
+
+const getFavoritePhotosCached = unstable_cache(
+  fetchFavoritePhotosFromDb,
+  ["data-access", "photos", "favorites"],
+  { revalidate: CACHE_TTL, tags: ["favorite-photos"] }
+);
+
+export async function getPhotos(
+  options?: FetchOptions
+): Promise<PhotoDocument[]> {
+  return options?.fresh ? fetchPhotosFromDb() : getPhotosCached();
+}
+
+export async function getFavoritePhotos(
+  limit = 3,
+  options?: FetchOptions
+): Promise<PhotoDocument[]> {
+  return options?.fresh
+    ? fetchFavoritePhotosFromDb(limit)
+    : getFavoritePhotosCached(limit);
 }
 
 export async function createPhoto(

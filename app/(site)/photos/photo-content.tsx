@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { AnimatedImage } from "../components/animated-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 import { PhotoLightbox } from "./photo-lightbox";
-import type { PhotoDocument } from "@/utils/types";
+import type { PhotoDocument, EventType } from "@/utils/types";
 
 interface PhotosContentProps {
   initialPhotos: PhotoDocument[];
@@ -13,46 +13,59 @@ interface PhotosContentProps {
 // Varying heights for natural masonry layout
 const PHOTO_HEIGHTS = [600, 700, 800, 750, 650, 720, 680, 770];
 const PHOTOS_PER_PAGE = 8;
+const EVENT_TYPES: Array<"All" | EventType> = [
+  "All",
+  "Wedding",
+  "Birthday",
+  "Baby Showers",
+  "Elopement",
+  "Birthdays",
+  "Ceremonies",
+  "Anniversaries",
+  "Engagements",
+  "Graduation",
+  "Other",
+];
 
 export function PhotosContent({ initialPhotos }: PhotosContentProps) {
   const [allPhotos] = useState<PhotoDocument[]>(initialPhotos);
-  const [displayedPhotos, setDisplayedPhotos] = useState<PhotoDocument[]>(() =>
-    initialPhotos.slice(0, PHOTOS_PER_PAGE)
-  );
+  const [selectedEvent, setSelectedEvent] = useState<"All" | EventType>("All");
+  const filteredPhotos = useMemo(() => {
+    if (selectedEvent === "All") {
+      return allPhotos;
+    }
+    return allPhotos.filter((photo) => photo.eventType === selectedEvent);
+  }, [allPhotos, selectedEvent]);
+
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(
-    initialPhotos.length > PHOTOS_PER_PAGE
-  );
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
     null
   );
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // Load more photos (client-side pagination)
+  const displayedPhotos = useMemo(
+    () => filteredPhotos.slice(0, page * PHOTOS_PER_PAGE),
+    [filteredPhotos, page]
+  );
+  const hasMore = displayedPhotos.length < filteredPhotos.length;
+
   const loadMorePhotos = useCallback(() => {
     if (loading || !hasMore) return;
 
     setLoading(true);
 
-    // Simulate slight delay for better UX
     setTimeout(() => {
-      const nextPage = page + 1;
-      const startIndex = nextPage * PHOTOS_PER_PAGE;
-      const endIndex = startIndex + PHOTOS_PER_PAGE;
-      const newPhotos = allPhotos.slice(startIndex, endIndex);
-
-      if (newPhotos.length > 0) {
-        setDisplayedPhotos((prev) => [...prev, ...newPhotos]);
-        setPage(nextPage);
-        setHasMore(endIndex < allPhotos.length);
-      } else {
-        setHasMore(false);
-      }
-
+      setPage((prev) => prev + 1);
       setLoading(false);
     }, 300);
-  }, [loading, hasMore, page, allPhotos]);
+  }, [loading, hasMore]);
+
+  const handleFilterChange = (type: "All" | EventType) => {
+    setSelectedEvent(type);
+    setPage(1);
+  };
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -102,6 +115,25 @@ export function PhotosContent({ initialPhotos }: PhotosContentProps) {
   return (
     <>
       <div className="container mx-auto px-4 py-16 md:py-24">
+        <ScrollTextAnimation>
+          <div className="flex flex-wrap gap-3 justify-center mb-10">
+            {EVENT_TYPES.map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => handleFilterChange(type)}
+                className={`px-4 py-2 rounded-full border text-sm font-medium transition-all duration-300 ${
+                  selectedEvent === type
+                    ? "bg-charcoal text-ivory border-charcoal"
+                    : "border-charcoal/30 text-charcoal hover:bg-charcoal hover:text-ivory"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </ScrollTextAnimation>
+
         {/* 2x2 Photo Grid with natural heights */}
         {displayedPhotos.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 md:gap-4 lg:gap-6 max-w-6xl mx-auto">

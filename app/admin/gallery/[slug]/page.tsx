@@ -11,7 +11,7 @@ interface GalleryPageProps {
 
 export default async function GallerySlugPage({ params }: GalleryPageProps) {
   const { slug } = await params;
-  const gallery = await getGalleryBySlug(slug);
+  const gallery = await getGalleryBySlug(slug, { fresh: true });
 
   if (!gallery) {
     notFound();

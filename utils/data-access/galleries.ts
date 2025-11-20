@@ -1,15 +1,19 @@
 "use server";
 
-import { unstable_noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { GalleryDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
 
 const COLLECTION = "galleries";
 const MAX_FEATURED = 4;
+const CACHE_TTL = 3600;
 
-export async function getGalleries(): Promise<GalleryDocument[]> {
-  unstable_noStore();
+type FetchOptions = {
+  fresh?: boolean;
+};
+
+async function fetchGalleriesFromDb(): Promise<GalleryDocument[]> {
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -20,15 +24,13 @@ export async function getGalleries(): Promise<GalleryDocument[]> {
     );
   } catch (error) {
     console.error("Error fetching galleries:", error);
-    // Return empty array on error to prevent page crashes
     return [];
   }
 }
 
-export async function getGalleryById(
+async function fetchGalleryByIdFromDb(
   id: string
 ): Promise<GalleryDocument | null> {
-  unstable_noStore();
   const doc = await adminDb.collection(COLLECTION).doc(id).get();
   if (!doc.exists) {
     return null;
@@ -36,10 +38,9 @@ export async function getGalleryById(
   return serializeGallery(doc.id, doc.data() as GalleryDocument);
 }
 
-export async function getGalleryBySlug(
+async function fetchGalleryBySlugFromDb(
   slug: string
 ): Promise<GalleryDocument | null> {
-  unstable_noStore();
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -53,17 +54,14 @@ export async function getGalleryBySlug(
     return serializeGallery(doc.id, doc.data() as GalleryDocument);
   } catch (error) {
     console.error(`Error fetching gallery by slug "${slug}":`, error);
-    // Return null on error to trigger 404
     return null;
   }
 }
 
-export async function getFeaturedGalleries(
+async function fetchFeaturedGalleriesFromDb(
   limit = MAX_FEATURED
 ): Promise<GalleryDocument[]> {
-  unstable_noStore();
   try {
-    // Try query with orderBy (requires composite index)
     const snap = await adminDb
       .collection(COLLECTION)
       .where("isFeatured", "==", true)
@@ -75,8 +73,6 @@ export async function getFeaturedGalleries(
       serializeGallery(doc.id, doc.data() as GalleryDocument)
     );
   } catch (error) {
-    // Fallback: query without orderBy and sort in memory
-    // This avoids requiring a composite index
     console.warn(
       "getFeaturedGalleries: Composite index not found, using fallback query",
       error
@@ -90,7 +86,6 @@ export async function getFeaturedGalleries(
       serializeGallery(doc.id, doc.data() as GalleryDocument)
     );
 
-    // Sort by updatedAt in memory and limit
     return galleries
       .sort((a, b) => {
         const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -99,6 +94,61 @@ export async function getFeaturedGalleries(
       })
       .slice(0, limit);
   }
+}
+
+const getGalleriesCached = unstable_cache(
+  fetchGalleriesFromDb,
+  ["data-access", "galleries", "list"],
+  { revalidate: CACHE_TTL, tags: ["galleries"] }
+);
+
+const getGalleryByIdCached = unstable_cache(
+  fetchGalleryByIdFromDb,
+  ["data-access", "galleries", "by-id"],
+  { revalidate: CACHE_TTL, tags: ["galleries"] }
+);
+
+const getGalleryBySlugCached = unstable_cache(
+  fetchGalleryBySlugFromDb,
+  ["data-access", "galleries", "by-slug"],
+  { revalidate: CACHE_TTL, tags: ["galleries"] }
+);
+
+const getFeaturedGalleriesCached = unstable_cache(
+  fetchFeaturedGalleriesFromDb,
+  ["data-access", "galleries", "featured"],
+  { revalidate: CACHE_TTL, tags: ["featured-galleries"] }
+);
+
+export async function getGalleries(
+  options?: FetchOptions
+): Promise<GalleryDocument[]> {
+  return options?.fresh ? fetchGalleriesFromDb() : getGalleriesCached();
+}
+
+export async function getGalleryById(
+  id: string,
+  options?: FetchOptions
+): Promise<GalleryDocument | null> {
+  return options?.fresh ? fetchGalleryByIdFromDb(id) : getGalleryByIdCached(id);
+}
+
+export async function getGalleryBySlug(
+  slug: string,
+  options?: FetchOptions
+): Promise<GalleryDocument | null> {
+  return options?.fresh
+    ? fetchGalleryBySlugFromDb(slug)
+    : getGalleryBySlugCached(slug);
+}
+
+export async function getFeaturedGalleries(
+  limit = MAX_FEATURED,
+  options?: FetchOptions
+): Promise<GalleryDocument[]> {
+  return options?.fresh
+    ? fetchFeaturedGalleriesFromDb(limit)
+    : getFeaturedGalleriesCached(limit);
 }
 
 export async function createGallery(

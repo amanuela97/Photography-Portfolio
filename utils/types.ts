@@ -26,6 +26,7 @@ export interface ProfileDocument {
   title: string;
   location: string;
   bio: string;
+  portraitImage?: string;
   contact: ContactInfo;
   createdAt?: string;
   updatedAt?: string;

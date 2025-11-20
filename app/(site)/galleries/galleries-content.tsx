@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AnimatedImage } from "../components/animated-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 import type { GalleryDocument } from "@/utils/types";
+import { appendCacheBuster } from "@/utils/cache-buster";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface GalleriesContentProps {
   initialGalleries: GalleryDocument[];
@@ -66,51 +68,56 @@ export function GalleriesContent({ initialGalleries }: GalleriesContentProps) {
       <div className="max-w-7xl mx-auto">
         {/* Galleries Grid - 2x2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {galleries.map((gallery, index) => (
-            <ScrollTextAnimation key={gallery.id} delay={index * 0.1}>
-              <div className="group">
-                {/* Image */}
-                <Link href={`/galleries/${gallery.slug}`}>
-                  <div className="relative aspect-4/3 overflow-hidden rounded-lg mb-4 bg-warm-gray">
-                    <AnimatedImage
-                      src={gallery.coverImageUrl || "/placeholder.svg"}
-                      alt={gallery.title}
-                      fill
-                      className="transition-transform duration-500 group-hover:scale-105"
-                      unoptimized
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-charcoal/40 via-charcoal/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
-                </Link>
+          {galleries.map((gallery, index) => {
+            const coverImage = gallery.coverImageUrl
+              ? appendCacheBuster(gallery.coverImageUrl, gallery.updatedAt)
+              : "/placeholder.svg";
+            return (
+              <ScrollTextAnimation key={gallery.id} delay={index * 0.1}>
+                <div className="group">
+                  {/* Image */}
+                  <Link href={`/galleries/${gallery.slug}`}>
+                    <div className="relative aspect-4/3 overflow-hidden rounded-lg mb-4 bg-warm-gray">
+                      <AnimatedImage
+                        src={coverImage}
+                        alt={gallery.title}
+                        fill
+                        className="transition-transform duration-500 group-hover:scale-105"
+                        unoptimized
+                      />
+                      <div className="absolute inset-0 bg-linear-to-t from-charcoal/40 via-charcoal/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </div>
+                  </Link>
 
-                {/* Title */}
-                <h3 className="text-2xl font-semibold text-charcoal mb-3 group-hover:text-gold transition-colors duration-300">
-                  {gallery.title}
-                </h3>
+                  {/* Title */}
+                  <h3 className="text-2xl font-semibold text-charcoal mb-3 group-hover:text-gold transition-colors duration-300">
+                    {gallery.title}
+                  </h3>
 
-                {/* View Now Link */}
-                <Link
-                  href={`/galleries/${gallery.slug}`}
-                  className="inline-flex items-center text-gold hover:text-charcoal transition-colors duration-300 font-medium text-sm uppercase tracking-wider"
-                >
-                  View Now
-                  <svg
-                    className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                  {/* View Now Link */}
+                  <Link
+                    href={`/galleries/${gallery.slug}`}
+                    className="inline-flex items-center text-gold hover:text-charcoal transition-colors duration-300 font-medium text-sm uppercase tracking-wider"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </Link>
-              </div>
-            </ScrollTextAnimation>
-          ))}
+                    View Now
+                    <svg
+                      className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform duration-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </Link>
+                </div>
+              </ScrollTextAnimation>
+            );
+          })}
         </div>
 
         {/* Loading Indicator */}

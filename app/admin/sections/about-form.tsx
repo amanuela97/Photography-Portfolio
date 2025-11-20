@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { appendCacheBuster } from "@/utils/cache-buster";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ interface AboutFormProps {
 }
 
 export function AboutForm({ about }: AboutFormProps) {
+  const router = useRouter();
   const initialSteps = useMemo<ProcessStep[]>(
     () => about?.process.steps ?? [{ number: 1, title: "", description: "" }],
     [about]
@@ -39,6 +42,11 @@ export function AboutForm({ about }: AboutFormProps) {
   const [lenses, setLenses] = useState<GearItem[]>(initialLenses);
   const [software, setSoftware] = useState<GearItem[]>(initialSoftware);
   const [landscapeFiles, setLandscapeFiles] = useState<File[]>([]);
+  const [currentLandscapeImage, setCurrentLandscapeImage] = useState(
+    about?.hero.landscapeImage
+      ? appendCacheBuster(about.hero.landscapeImage, about.updatedAt)
+      : undefined
+  );
   const [landscapeProgress, setLandscapeProgress] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -223,6 +231,15 @@ export function AboutForm({ about }: AboutFormProps) {
               setLandscapeFiles([]);
               setLandscapeProgress(0);
             }, 1000);
+            if (result.landscapeImageUrl) {
+              setCurrentLandscapeImage(
+                appendCacheBuster(
+                  result.landscapeImageUrl,
+                  new Date().toISOString()
+                )
+              );
+            }
+            router.refresh();
           } catch (error) {
             console.error("About save error:", error);
             toast.error((error as Error).message || "Failed to save content", {
@@ -257,9 +274,7 @@ export function AboutForm({ about }: AboutFormProps) {
               progress={landscapeProgress}
               onFilesChange={setLandscapeFiles}
               existingFiles={
-                about?.hero.landscapeImage
-                  ? [about.hero.landscapeImage]
-                  : undefined
+                currentLandscapeImage ? [currentLandscapeImage] : undefined
               }
               disabled={isSaving}
             />

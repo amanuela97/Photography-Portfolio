@@ -2,7 +2,7 @@ import { getPhotos } from "@/utils/data-access/photos";
 import { PhotosContent } from "./photo-content";
 import { PhotosHero } from "./photos-hero";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function PhotosPage() {
   let initialPhotos: Awaited<ReturnType<typeof getPhotos>> = [];

@@ -6,8 +6,8 @@ import { Card } from "@/components/ui/card";
 import { AnimatedHeroImage } from "../components/animated-hero-image";
 import { AnimatedImage } from "../components/animated-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
-import type { AboutDocument } from "@/utils/types";
-import type { PhotoDocument } from "@/utils/types";
+import type { AboutDocument, PhotoDocument } from "@/utils/types";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface AboutPageContentProps {
   about: AboutDocument | null;
@@ -18,8 +18,9 @@ export function AboutPageContent({
   about,
   favoritePhotos,
 }: AboutPageContentProps) {
-  const heroImage =
-    about?.hero.landscapeImage || "/profile-picture-portrait.PNG";
+  const heroImage = about?.hero.landscapeImage
+    ? appendCacheBuster(about.hero.landscapeImage, about?.updatedAt)
+    : "/profile-landscape.JPG";
   const heroIntro =
     about?.hero.intro ||
     "Capturing love through art—creating timeless imagery rooted in feeling.";

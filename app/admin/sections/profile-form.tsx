@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useActionState,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -19,10 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormShell } from "../components/form-shell";
-import { saveProfileAction } from "../actions/profile-actions";
-import { initialActionState } from "../actions/action-state";
 import toast from "react-hot-toast";
 import type { ProfileDocument, SocialLink, SocialType } from "@/utils/types";
+import { MediaDropzone } from "../components/media-dropzone";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 const SOCIAL_OPTIONS: SocialType[] = ["Instagram", "Facebook", "Twitter"];
 
@@ -39,23 +33,23 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   }, [profile]);
 
   const [socials, setSocials] = useState<SocialLink[]>(initialSocials);
-  const [state, formAction] = useActionState(
-    saveProfileAction,
-    initialActionState<ProfileDocument>()
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [portraitPreview, setPortraitPreview] = useState(
+    profile?.portraitImage ?? ""
   );
-  const [pending, startTransition] = useTransition();
-
-  useEffect(() => {
-    if (state.status === "success") {
-      toast.success(state.message ?? "Profile saved.");
-    } else if (state.status === "error") {
-      toast.error(state.message ?? "Unable to save profile.");
-    }
-  }, [state]);
+  const [portraitVersion, setPortraitVersion] = useState(
+    profile?.updatedAt ?? ""
+  );
+  const [portraitFiles, setPortraitFiles] = useState<File[]>([]);
 
   useEffect(() => {
     setSocials(initialSocials);
   }, [initialSocials]);
+
+  useEffect(() => {
+    setPortraitPreview(profile?.portraitImage ?? "");
+    setPortraitVersion(profile?.updatedAt ?? "");
+  }, [profile?.portraitImage, profile?.updatedAt]);
 
   const handleSocialChange = (
     index: number,
@@ -77,6 +71,44 @@ export function ProfileForm({ profile }: ProfileFormProps) {
     setSocials((prev) => prev.filter((_, idx) => idx !== index));
   };
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setIsSubmitting(true);
+      const formData = new FormData(event.currentTarget);
+      formData.set("socials", JSON.stringify(socials));
+      formData.set("currentPortraitImage", portraitPreview);
+      if (portraitFiles.length > 0 && portraitFiles[0]) {
+        formData.set("portraitImage", portraitFiles[0]);
+      }
+
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to save profile.");
+      }
+
+      toast.success(result.message || "Profile saved.");
+      if (result.portraitImageUrl) {
+        setPortraitPreview(result.portraitImageUrl);
+        setPortraitVersion(Date.now().toString());
+        setPortraitFiles([]);
+      }
+    } catch (error) {
+      console.error("Profile save error:", error);
+      toast.error(
+        (error as Error).message || "Unable to update profile. Please retry."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <FormShell
       title="Profile"
@@ -85,19 +117,18 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         <Button
           type="submit"
           form="profile-form"
-          disabled={pending}
-          className="ml-auto cursor-pointer bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          disabled={isSubmitting}
+          className="ml-auto cursor-pointer bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary disabled:opacity-50"
         >
-          {pending ? "Saving..." : "Save changes"}
+          {isSubmitting ? "Saving..." : "Save changes"}
         </Button>
       }
     >
       <form
         id="profile-form"
         className="grid gap-6 md:grid-cols-2"
-        action={(formData) => startTransition(() => formAction(formData))}
+        onSubmit={handleSubmit}
       >
-        <input type="hidden" name="socials" value={JSON.stringify(socials)} />
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -162,6 +193,26 @@ export function ProfileForm({ profile }: ProfileFormProps) {
             defaultValue={profile?.bio ?? ""}
             placeholder="Share your story..."
             className="bg-brand-background text-brand-text"
+          />
+        </div>
+        <div className="md:col-span-2 space-y-2">
+          <MediaDropzone
+            name="portraitImage"
+            label="Portrait image"
+            description="Upload a single portrait image shown on the home page hero."
+            accept={{ "image/*": [] }}
+            multiple={false}
+            onFilesChange={setPortraitFiles}
+            onRemoveExisting={() => {
+              setPortraitPreview("");
+              setPortraitFiles([]);
+            }}
+            existingFiles={
+              portraitPreview
+                ? [appendCacheBuster(portraitPreview, portraitVersion)]
+                : undefined
+            }
+            disabled={isSubmitting}
           />
         </div>
         <div className="md:col-span-2 space-y-4">

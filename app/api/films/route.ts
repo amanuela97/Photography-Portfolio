@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createFilm, updateFilm, deleteFilm } from "@/utils/data-access/films";
 import {
   uploadFileToStorage,
@@ -14,6 +14,8 @@ function getSingleFile(formData: FormData, field: string): File | null {
   }
   return null;
 }
+
+const FILMS_TAG = "films";
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest) {
     });
 
     revalidatePath("/admin");
+    revalidateTag(FILMS_TAG, "default");
 
     return NextResponse.json({
       success: true,
@@ -177,6 +180,7 @@ export async function PUT(request: NextRequest) {
 
     await updateFilm(id, updateData);
     revalidatePath("/admin");
+    revalidateTag(FILMS_TAG, "default");
 
     return NextResponse.json({
       success: true,
@@ -214,6 +218,7 @@ export async function DELETE(request: NextRequest) {
     // Delete film from Firestore
     await deleteFilm(id);
     revalidatePath("/admin");
+    revalidateTag(FILMS_TAG, "default");
 
     return NextResponse.json({
       success: true,

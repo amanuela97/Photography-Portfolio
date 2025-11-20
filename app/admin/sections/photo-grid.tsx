@@ -44,6 +44,14 @@ export function PhotoGrid({ photos: initialPhotos }: PhotoGridProps) {
     setPhotos(initialPhotos);
   }, [initialPhotos]);
 
+  const handleFavoriteToggle = (photoId: string, nextFavorite: boolean) => {
+    setPhotos((prev) =>
+      prev.map((photo) =>
+        photo.id === photoId ? { ...photo, isFavorite: nextFavorite } : photo
+      )
+    );
+  };
+
   const favoriteCount = photos.filter((p) => p.isFavorite).length;
   const maxFavorites = 6;
 
@@ -83,6 +91,7 @@ export function PhotoGrid({ photos: initialPhotos }: PhotoGridProps) {
             favoriteCount={favoriteCount}
             maxFavorites={maxFavorites}
             onDelete={handlePhotoDelete}
+            onFavoriteToggle={handleFavoriteToggle}
             priority={index < 6} // Prioritize first 6 images
           />
         ))}
@@ -96,6 +105,7 @@ interface PhotoCardProps {
   favoriteCount: number;
   maxFavorites: number;
   onDelete: (id: string) => void;
+  onFavoriteToggle: (id: string, isFavorite: boolean) => void;
   priority?: boolean;
 }
 
@@ -104,6 +114,7 @@ function PhotoCard({
   favoriteCount,
   maxFavorites,
   onDelete,
+  onFavoriteToggle,
   priority = false,
 }: PhotoCardProps) {
   const router = useRouter();
@@ -476,6 +487,8 @@ function PhotoCard({
                   : "Photo removed from favorites",
                 { duration: 3000 }
               );
+              onFavoriteToggle(photo.id, checked);
+              router.refresh();
             } catch (error) {
               console.error("Favorite toggle error:", error);
               toast.error(
@@ -488,7 +501,7 @@ function PhotoCard({
           }}
           className={`w-full ${
             isFavorite
-              ? "bg-brand-accent text-brand-primary hover:bg-brand-accent/90"
+              ? "bg-brand-accent text-brand-text hover:bg-brand-accent/90"
               : "border-brand-muted hover:bg-brand-background"
           }`}
         >
@@ -496,7 +509,7 @@ function PhotoCard({
             className={`h-4 w-4 mr-2 ${
               isFavorite
                 ? "fill-brand-primary text-brand-primary"
-                : "text-brand-muted"
+                : "text-brand-text"
             }`}
           />
           {isFavorite ? "Favorited" : "Mark as Favorite"}

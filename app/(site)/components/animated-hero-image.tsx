@@ -20,12 +20,16 @@ export function AnimatedHeroImage({
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Small delay to ensure smooth fade-in
+    // reset animation when src changes
+    setIsLoaded(false);
+    setIsVisible(false);
+
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 50);
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [src]);
 
   return (
     <div className={`absolute inset-0 ${className}`}>

@@ -1,14 +1,18 @@
 "use server";
 
-import { unstable_noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { adminDb } from "@/utils/firebase/admin";
 import type { FilmDocument } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
 
 const COLLECTION = "films";
+const CACHE_TTL = 3600;
 
-export async function getFilms(): Promise<FilmDocument[]> {
-  unstable_noStore();
+type FetchOptions = {
+  fresh?: boolean;
+};
+
+async function fetchFilmsFromDb(): Promise<FilmDocument[]> {
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -19,9 +23,20 @@ export async function getFilms(): Promise<FilmDocument[]> {
     );
   } catch (error) {
     console.error("Error fetching films:", error);
-    // Return empty array on error to prevent page crashes
     return [];
   }
+}
+
+const getFilmsCached = unstable_cache(
+  fetchFilmsFromDb,
+  ["data-access", "films", "list"],
+  { revalidate: CACHE_TTL, tags: ["films"] }
+);
+
+export async function getFilms(
+  options?: FetchOptions
+): Promise<FilmDocument[]> {
+  return options?.fresh ? fetchFilmsFromDb() : getFilmsCached();
 }
 
 export async function createFilm(

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   uploadFileToStorage,
   deleteFileByUrl,
@@ -14,6 +14,9 @@ import type { EventType } from "@/utils/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+const PHOTOS_TAG = "photos";
+const FAVORITE_PHOTOS_TAG = "favorite-photos";
 
 // Image file signatures (magic bytes)
 const IMAGE_SIGNATURES: Record<string, number[][]> = {
@@ -149,6 +152,11 @@ export async function POST(request: NextRequest) {
     });
 
     revalidatePath("/admin");
+    revalidatePath("/photos");
+    revalidatePath("/");
+    revalidatePath("/about");
+    revalidateTag(PHOTOS_TAG, "default");
+    revalidateTag(FAVORITE_PHOTOS_TAG, "default");
 
     return NextResponse.json({
       success: true,
@@ -185,7 +193,7 @@ export async function PUT(request: NextRequest) {
     if (formData.has("isFavorite")) {
       // Check favorite limit before updating
       if (isFavorite) {
-        const photos = await getPhotos();
+        const photos = await getPhotos({ fresh: true });
         const favoriteCount = photos.filter(
           (p) => p.isFavorite && p.id !== id
         ).length;
@@ -220,6 +228,11 @@ export async function PUT(request: NextRequest) {
 
     await updatePhoto(id, updateData);
     revalidatePath("/admin");
+    revalidatePath("/photos");
+    revalidatePath("/");
+    revalidatePath("/about");
+    revalidateTag(PHOTOS_TAG, "default");
+    revalidateTag(FAVORITE_PHOTOS_TAG, "default");
 
     return NextResponse.json({
       success: true,
@@ -258,6 +271,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     revalidatePath("/admin");
+    revalidatePath("/photos");
+    revalidatePath("/");
+    revalidatePath("/about");
+    revalidateTag(PHOTOS_TAG, "default");
+    revalidateTag(FAVORITE_PHOTOS_TAG, "default");
 
     return NextResponse.json({
       success: true,

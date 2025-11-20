@@ -14,6 +14,7 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
 import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
+import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface GalleryEditFormProps {
   gallery: GalleryDocument;
@@ -71,6 +72,10 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
   useEffect(() => {
     setSlugInput(gallery.slug ?? "");
   }, [gallery.slug]);
+
+  useEffect(() => {
+    setExistingCover(gallery.coverImageUrl ?? "");
+  }, [gallery.coverImageUrl]);
 
   const handleSlugChange = (value: string) => {
     const cleaned = value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
@@ -329,7 +334,11 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                 accept={{ "image/*": [] }}
                 progress={coverProgress}
                 onFilesChange={setCoverFiles}
-                existingFiles={existingCover ? [existingCover] : undefined}
+                existingFiles={
+                  existingCover
+                    ? [appendCacheBuster(existingCover, gallery.updatedAt)]
+                    : undefined
+                }
                 onRemoveExisting={() => setExistingCover("")}
                 disabled={isSaving}
               />

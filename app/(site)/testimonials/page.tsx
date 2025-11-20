@@ -1,7 +1,7 @@
 import { getTestimonials } from "@/utils/data-access/testimonials";
 import { TestimonialsContent } from "./testimonials-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function TestimonialsPage() {
   let testimonials: Awaited<ReturnType<typeof getTestimonials>> = [];

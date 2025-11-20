@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   createPhoto,
   deletePhoto,
@@ -8,6 +8,9 @@ import {
 } from "@/utils/data-access/photos";
 import type { ActionState } from "./action-state";
 import type { EventType } from "@/utils/types";
+
+const PHOTOS_TAG = "photos";
+const FAVORITE_PHOTOS_TAG = "favorite-photos";
 
 export async function createPhotoAction(
   _prevState: ActionState,
@@ -30,6 +33,11 @@ export async function createPhotoAction(
     });
 
     revalidatePath("/admin");
+    revalidatePath("/photos");
+    revalidatePath("/");
+    revalidatePath("/about");
+    revalidateTag(PHOTOS_TAG, "default");
+    revalidateTag(FAVORITE_PHOTOS_TAG, "default");
     return { status: "success", message: "Photo uploaded." };
   } catch (error) {
     console.error(error);
@@ -47,6 +55,11 @@ export async function togglePhotoFavoriteAction(
     const isFavorite = formData.get("isFavorite") === "true";
     await updatePhoto(id, { isFavorite });
     revalidatePath("/admin");
+    revalidatePath("/photos");
+    revalidatePath("/");
+    revalidatePath("/about");
+    revalidateTag(PHOTOS_TAG, "default");
+    revalidateTag(FAVORITE_PHOTOS_TAG, "default");
     return { status: "success" };
   } catch (error) {
     console.error(error);
@@ -63,6 +76,11 @@ export async function deletePhotoAction(
     if (!id) throw new Error("Photo ID missing.");
     await deletePhoto(id);
     revalidatePath("/admin");
+    revalidatePath("/photos");
+    revalidatePath("/");
+    revalidatePath("/about");
+    revalidateTag(PHOTOS_TAG, "default");
+    revalidateTag(FAVORITE_PHOTOS_TAG, "default");
     return { status: "success", message: "Photo deleted." };
   } catch (error) {
     console.error(error);

@@ -1,12 +1,15 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   createTestimonial,
   deleteTestimonial,
   updateTestimonial,
 } from "@/utils/data-access/testimonials";
 import type { ActionState } from "./action-state";
+
+const TESTIMONIALS_TAG = "testimonials";
+const FEATURED_TESTIMONIALS_TAG = "featured-testimonials";
 
 export async function createTestimonialAction(
   _prevState: ActionState,
@@ -24,6 +27,8 @@ export async function createTestimonialAction(
     revalidatePath("/admin");
     revalidatePath("/testimonials");
     revalidatePath("/testimonials/create");
+    revalidateTag(TESTIMONIALS_TAG, "default");
+    revalidateTag(FEATURED_TESTIMONIALS_TAG, "default");
     return { status: "success", message: "Testimonial created." };
   } catch (error) {
     console.error(error);
@@ -45,6 +50,8 @@ export async function updateTestimonialAction(
       isFeatured: formData.get("isFeatured") === "true",
     });
     revalidatePath("/admin");
+    revalidateTag(TESTIMONIALS_TAG, "default");
+    revalidateTag(FEATURED_TESTIMONIALS_TAG, "default");
     return { status: "success" };
   } catch (error) {
     console.error(error);
@@ -61,6 +68,8 @@ export async function deleteTestimonialAction(
     if (!id) throw new Error("Testimonial ID missing.");
     await deleteTestimonial(id);
     revalidatePath("/admin");
+    revalidateTag(TESTIMONIALS_TAG, "default");
+    revalidateTag(FEATURED_TESTIMONIALS_TAG, "default");
     return { status: "success", message: "Testimonial deleted." };
   } catch (error) {
     console.error(error);
