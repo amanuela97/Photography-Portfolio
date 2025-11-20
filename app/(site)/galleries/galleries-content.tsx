@@ -6,7 +6,6 @@ import { AnimatedImage } from "../components/animated-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 import type { GalleryDocument } from "@/utils/types";
 import { appendCacheBuster } from "@/utils/cache-buster";
-import { appendCacheBuster } from "@/utils/cache-buster";
 
 interface GalleriesContentProps {
   initialGalleries: GalleryDocument[];
