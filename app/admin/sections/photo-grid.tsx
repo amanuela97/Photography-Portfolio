@@ -249,16 +249,16 @@ function PhotoCard({
         {showDeleteConfirm && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center gap-2 p-4 z-10">
             <div className="bg-brand-surface rounded-lg p-4 space-y-3 max-w-xs">
-              <p className="text-sm font-medium text-brand-text text-center">
+              <p className="text-sm font-medium text-white text-center">
                 Delete this photo?
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 ">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 text-brand-text hover:text-white hover:bg-brand-primary cursor-pointer"
+                  className="flex-1 text-white hover:bg-brand-primary cursor-pointer"
                 >
                   Cancel
                 </Button>
@@ -312,7 +312,7 @@ function PhotoCard({
                       setPendingDelete(false);
                     }
                   }}
-                  className="flex-1 text-brand-text hover:text-white hover:bg-brand-primary cursor-pointer"
+                  className="flex-1 text-white  hover:bg-brand-primary cursor-pointer"
                 >
                   {pendingDelete ? "Deleting..." : "Delete"}
                 </Button>

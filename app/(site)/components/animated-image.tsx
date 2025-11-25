@@ -4,6 +4,11 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  CHARCOAL_BLUR_DATA_URL,
+  WARM_BLUR_DATA_URL,
+} from "@/utils/image-placeholders";
+import { isSignedUrl } from "@/utils/cache-buster";
 
 // Register ScrollTrigger plugin
 if (typeof window !== "undefined") {
@@ -19,6 +24,9 @@ interface AnimatedImageProps {
   className?: string;
   priority?: boolean;
   unoptimized?: boolean;
+  sizes?: string;
+  blurVariant?: "warm" | "charcoal";
+  blurDataURL?: string | null;
 }
 
 export function AnimatedImage({
@@ -30,6 +38,9 @@ export function AnimatedImage({
   className = "",
   priority = false,
   unoptimized = false,
+  sizes,
+  blurVariant = "warm",
+  blurDataURL,
 }: AnimatedImageProps) {
   const imageRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -111,12 +122,19 @@ export function AnimatedImage({
   const imageProps = fill
     ? {
         fill: true as const,
-        sizes: "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw",
+        sizes:
+          sizes || "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw",
       }
     : {
         width: width || 800,
         height: height || 600,
+        sizes,
       };
+
+  const resolvedBlur =
+    blurDataURL ??
+    (blurVariant === "charcoal" ? CHARCOAL_BLUR_DATA_URL : WARM_BLUR_DATA_URL);
+  const shouldBypassOptimization = unoptimized || isSignedUrl(src);
 
   return (
     <div
@@ -129,7 +147,10 @@ export function AnimatedImage({
         {...imageProps}
         className={fill ? "object-cover" : "w-full h-full object-cover"}
         priority={priority}
-        unoptimized={unoptimized}
+        unoptimized={shouldBypassOptimization}
+        loading={priority ? "eager" : undefined}
+        placeholder="blur"
+        blurDataURL={resolvedBlur}
         onLoad={() => setIsLoaded(true)}
         onError={() => {
           console.error("Failed to load image:", src);

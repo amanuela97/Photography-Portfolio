@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AnimatedHeroImage } from "../components/animated-hero-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 import type { TestimonialDocument } from "@/utils/types";
+import { WARM_BLUR_DATA_URL } from "@/utils/image-placeholders";
 
 interface TestimonialsContentProps {
   approvedTestimonials: TestimonialDocument[];
@@ -21,6 +22,7 @@ export function TestimonialsContent({
             src="/testimonials-hero.JPG"
             alt="Client testimonials hero"
             priority
+            blurDataURL={WARM_BLUR_DATA_URL}
           />
           <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/40" />
         </div>
@@ -90,4 +92,3 @@ export function TestimonialsContent({
     </div>
   );
 }
-

@@ -11,7 +11,7 @@ export function proxy(request: NextRequest) {
   if (pathname.startsWith("/admin")) {
     if (!sessionCookie) {
       const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirectTo", "/admin/gallery");
+      loginUrl.searchParams.set("redirectTo", "/admin");
       return NextResponse.redirect(loginUrl);
     }
   }

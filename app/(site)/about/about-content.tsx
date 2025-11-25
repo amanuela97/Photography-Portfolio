@@ -8,6 +8,7 @@ import { AnimatedImage } from "../components/animated-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 import type { AboutDocument, PhotoDocument } from "@/utils/types";
 import { appendCacheBuster } from "@/utils/cache-buster";
+import { WARM_BLUR_DATA_URL } from "@/utils/image-placeholders";
 
 interface AboutPageContentProps {
   about: AboutDocument | null;
@@ -31,7 +32,12 @@ export function AboutPageContent({
   return (
     <main className="min-h-screen">
       <section className="relative h-screen w-full overflow-hidden">
-        <AnimatedHeroImage src={heroImage} alt="Hero landscape" priority />
+        <AnimatedHeroImage
+          src={heroImage}
+          alt="Hero landscape"
+          priority
+          blurDataURL={WARM_BLUR_DATA_URL}
+        />
         <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/30" />
 
         <div className="relative h-full flex flex-col items-center justify-center text-center px-6 text-white mt-32">
@@ -221,7 +227,7 @@ export function AboutPageContent({
                     src={photo.url || "/placeholder.svg"}
                     alt={`Favorite shot ${index + 1}`}
                     fill
-                    unoptimized
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                     className="group-hover:scale-105 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-brand-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

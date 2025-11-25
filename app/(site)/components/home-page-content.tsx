@@ -14,6 +14,7 @@ import type {
 } from "@/utils/types";
 import { useSiteProfile } from "./site-profile-context";
 import { appendCacheBuster } from "@/utils/cache-buster";
+import { WARM_BLUR_DATA_URL } from "@/utils/image-placeholders";
 
 interface HomePageContentProps {
   featuredGalleries: GalleryDocument[];
@@ -28,13 +29,28 @@ export function HomePageContent({
 }: HomePageContentProps) {
   const profile = useSiteProfile();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const heroSlides = favoritePhotos.length
+    ? favoritePhotos.slice(0, 3)
+    : [
+        {
+          id: "fallback-hero",
+          url: "/profile-landscape.JPG",
+          title: "Portfolio highlight",
+          eventType: "Wedding",
+          isFavorite: true,
+        } as PhotoDocument,
+      ];
 
   useEffect(() => {
+    if (heroSlides.length < 2) {
+      return;
+    }
+
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % favoritePhotos.length);
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [favoritePhotos.length]);
+  }, [heroSlides.length]);
 
   const locationCopy = profile?.location ?? "Worldwide";
   const bioCopy =
@@ -48,7 +64,7 @@ export function HomePageContent({
     <main className="min-h-screen">
       {/* Hero Section */}
       <section className="relative h-screen w-full overflow-hidden">
-        {favoritePhotos.map((photo, index) => (
+        {heroSlides.map((photo, index) => (
           <div
             key={photo.id}
             className={`absolute inset-0 transition-opacity duration-1000 ${
@@ -59,6 +75,7 @@ export function HomePageContent({
               src={photo.url}
               alt={photo.title}
               priority={index === 0}
+              blurDataURL={WARM_BLUR_DATA_URL}
             />
             <div className="absolute inset-0 bg-linear-to-b from-black/40 to-black/20" />
           </div>
@@ -83,7 +100,7 @@ export function HomePageContent({
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-          {favoritePhotos.map((_, index) => (
+          {heroSlides.map((_, index) => (
             <button
               key={`indicator-${index}`}
               onClick={() => setCurrentSlide(index)}
@@ -135,6 +152,7 @@ export function HomePageContent({
                         alt={profile?.name ?? "Profile Portrait"}
                         fill
                         className="object-cover"
+                        blurVariant="charcoal"
                       />
                     </div>
                   </div>
@@ -182,7 +200,8 @@ export function HomePageContent({
                           alt={gallery.title}
                           fill
                           className="transition-transform duration-500 group-hover:scale-105"
-                          unoptimized
+                          sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 22vw"
+                          priority={index < 2}
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-charcoal/60 via-charcoal/0 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       </div>

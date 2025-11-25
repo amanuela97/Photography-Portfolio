@@ -108,18 +108,6 @@ if (!getApps().length) {
     );
   }
 
-  // Debug: Log key format info (safely, without exposing the full key)
-  const rawKey = process.env.FIREBASE_PRIVATE_KEY || "";
-  console.log("Private key format debug:", {
-    rawLength: rawKey.length,
-    formattedLength: privateKey.length,
-    hasBeginMarker: privateKey.includes("-----BEGIN"),
-    hasEndMarker: privateKey.includes("-----END"),
-    firstLine: privateKey.split("\n")[0],
-    lastLine: privateKey.split("\n").slice(-1)[0],
-    lineCount: privateKey.split("\n").length,
-  });
-
   try {
     const appOptions: {
       credential: ReturnType<typeof cert>;

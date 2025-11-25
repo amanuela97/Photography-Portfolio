@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    middlewareClientMaxBodySize: "50mb",
+    proxyClientMaxBodySize: "50mb",
     serverActions: {
       bodySizeLimit: "50mb",
     },
@@ -17,19 +17,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
-      {
-        protocol: "https",
-        hostname: "storage.googleapis.com",
-      },
-      {
-        protocol: "https",
-        hostname: "*.storage.googleapis.com",
-      },
-      {
-        protocol: "https",
-        hostname: "firebasestorage.googleapis.com",
-      },
+      { protocol: "https", hostname: "storage.googleapis.com" },
+      { protocol: "https", hostname: "*.storage.googleapis.com" },
+      { protocol: "https", hostname: "firebasestorage.googleapis.com" },
+      { protocol: "https", hostname: "*.firebasestorage.app" },
     ],
+    formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 31536000, // 1 year cache
   },
 };

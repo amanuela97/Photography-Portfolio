@@ -1,5 +1,6 @@
 import { adminStorage } from "@/utils/firebase/admin";
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 
 interface UploadOptions {
   folder?: string;
@@ -14,29 +15,41 @@ export async function uploadFileToStorage(
     throw new Error("Firebase Storage is not configured.");
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const extension = extractExtension(file.name);
-  const objectPath =
+  let buffer = Buffer.from(await file.arrayBuffer());
+  const isImage = file.type?.startsWith("image/");
+  let extension = extractExtension(file.name) || ".bin";
+  let contentType = file.type || undefined;
+
+  if (isImage) {
+    const processedBuffer = await sharp(buffer)
+      .rotate()
+      .webp({ quality: 82 })
+      .toBuffer();
+    buffer = Buffer.from(processedBuffer);
+    extension = ".webp";
+    contentType = "image/webp";
+  }
+
+  let objectPath =
     options.path ??
     `${trimSlashes(
       options.folder ?? "uploads"
     )}/${Date.now()}-${randomUUID()}${extension}`;
 
+  if (isImage) {
+    objectPath = ensureExtension(objectPath, extension);
+  }
+
   const destinationFile = adminStorage.file(objectPath);
   await destinationFile.save(buffer, {
     resumable: false,
     metadata: {
-      contentType: file.type || undefined,
+      contentType,
       cacheControl: "public,max-age=31536000",
     },
   });
 
-  const [url] = await destinationFile.getSignedUrl({
-    action: "read",
-    expires: "2030-01-01",
-  });
-
-  return url;
+  return generateSignedUrl(objectPath);
 }
 
 export async function uploadMultipleFiles(
@@ -56,6 +69,14 @@ function extractExtension(name: string): string {
   return match ? match[0] : "";
 }
 
+function ensureExtension(path: string, ext: string): string {
+  const normalizedExt = ext.startsWith(".") ? ext : `.${ext}`;
+  if (path.includes(".")) {
+    return path.replace(/\.[^/.]+$/, normalizedExt);
+  }
+  return `${path}${normalizedExt}`;
+}
+
 export async function deleteFilesInFolder(folder: string): Promise<void> {
   if (!adminStorage) {
     throw new Error("Firebase Storage is not configured.");
@@ -66,6 +87,77 @@ export async function deleteFilesInFolder(folder: string): Promise<void> {
 
   // Delete all files in the folder
   await Promise.all(files.map((file) => file.delete()));
+}
+
+export async function moveFolder(
+  sourceFolder: string,
+  destinationFolder: string
+): Promise<void> {
+  if (!adminStorage) {
+    throw new Error("Firebase Storage is not configured.");
+  }
+
+  const sourcePath = trimSlashes(sourceFolder);
+  const destinationPath = trimSlashes(destinationFolder);
+
+  if (sourcePath === destinationPath) {
+    return;
+  }
+
+  const [files] = await adminStorage.getFiles({ prefix: `${sourcePath}/` });
+  await Promise.all(
+    files.map(async (file) => {
+      const relativePath = file.name.replace(`${sourcePath}/`, "");
+      const targetPath = `${destinationPath}/${relativePath}`;
+      await file.move(targetPath);
+    })
+  );
+}
+
+export async function moveFileInStorage(
+  sourcePath: string,
+  destinationPath: string
+): Promise<void> {
+  if (!adminStorage) {
+    throw new Error("Firebase Storage is not configured.");
+  }
+
+  const normalizedSource = trimSlashes(sourcePath);
+  const normalizedDestination = trimSlashes(destinationPath);
+  const file = adminStorage.file(normalizedSource);
+  const [exists] = await file.exists();
+  if (!exists) {
+    console.warn(`Storage file not found: ${normalizedSource}`);
+    return;
+  }
+
+  await file.move(normalizedDestination);
+}
+
+export async function generateSignedUrl(path: string): Promise<string> {
+  if (!adminStorage) {
+    throw new Error("Firebase Storage is not configured.");
+  }
+
+  const file = adminStorage.file(trimSlashes(path));
+  const [url] = await file.getSignedUrl({
+    action: "read",
+    expires: "2030-01-01",
+  });
+  return url;
+}
+
+export function getStoragePathFromUrl(urlString: string): string | null {
+  try {
+    const url = new URL(urlString);
+    const pathMatch = url.pathname.match(/\/[^\/]+\/(.+)$/);
+    if (!pathMatch || !pathMatch[1]) {
+      return null;
+    }
+    return decodeURIComponent(pathMatch[1]);
+  } catch {
+    return null;
+  }
 }
 
 function trimSlashes(path: string): string {
@@ -82,19 +174,13 @@ export async function deleteFileByUrl(signedUrl: string): Promise<void> {
   }
 
   try {
-    // Extract the file path from the signed URL
-    // Firebase Storage signed URLs have the format:
-    // https://storage.googleapis.com/BUCKET_NAME/FILE_PATH?signature=...
-    const url = new URL(signedUrl);
-    const pathMatch = url.pathname.match(/\/[^\/]+\/(.+)$/);
-    
-    if (!pathMatch || !pathMatch[1]) {
+    const filePath = getStoragePathFromUrl(signedUrl);
+    if (!filePath) {
       throw new Error("Could not extract file path from URL");
     }
 
-    const filePath = decodeURIComponent(pathMatch[1]);
     const file = adminStorage.file(filePath);
-    
+
     // Check if file exists before deleting
     const [exists] = await file.exists();
     if (exists) {

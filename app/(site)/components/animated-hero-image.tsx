@@ -2,12 +2,15 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { WARM_BLUR_DATA_URL } from "@/utils/image-placeholders";
+import { isSignedUrl } from "@/utils/cache-buster";
 
 interface AnimatedHeroImageProps {
   src: string;
   alt: string;
   priority?: boolean;
   className?: string;
+  blurDataURL?: string | null;
 }
 
 export function AnimatedHeroImage({
@@ -15,20 +18,34 @@ export function AnimatedHeroImage({
   alt,
   priority = false,
   className = "",
+  blurDataURL,
 }: AnimatedHeroImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // reset animation when src changes
-    setIsLoaded(false);
-    setIsVisible(false);
+    let isCancelled = false;
 
+    const resetState = () => {
+      if (isCancelled) {
+        return;
+      }
+      setIsLoaded(false);
+      setIsVisible(false);
+    };
+
+    const raf = requestAnimationFrame(resetState);
     const timer = setTimeout(() => {
-      setIsVisible(true);
+      if (!isCancelled) {
+        setIsVisible(true);
+      }
     }, 50);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isCancelled = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, [src]);
 
   return (
@@ -37,11 +54,15 @@ export function AnimatedHeroImage({
         src={src}
         alt={alt}
         fill
+        sizes="100vw"
         className={`object-cover transition-opacity duration-1000 ease-in-out ${
           isLoaded && isVisible ? "opacity-100" : "opacity-0"
         }`}
         priority={priority}
-        unoptimized
+        loading={priority ? "eager" : "lazy"}
+        placeholder="blur"
+        blurDataURL={blurDataURL ?? WARM_BLUR_DATA_URL}
+        unoptimized={isSignedUrl(src)}
         onLoad={() => setIsLoaded(true)}
       />
     </div>

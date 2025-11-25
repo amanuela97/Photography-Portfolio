@@ -3,6 +3,9 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import {
   uploadFileToStorage,
   uploadMultipleFiles,
+  moveFileInStorage,
+  getStoragePathFromUrl,
+  generateSignedUrl,
 } from "@/utils/data-access/storage";
 import type { GalleryDocument } from "@/utils/types";
 import {
@@ -21,6 +24,7 @@ export const maxDuration = 60;
 
 const GALLERIES_TAG = "galleries";
 const FEATURED_GALLERIES_TAG = "featured-galleries";
+const GALLERIES_FOLDER = "galleries";
 
 function getSingleFile(formData: FormData, field: string): File | null {
   const entry = formData.get(field);
@@ -35,6 +39,85 @@ function getFiles(formData: FormData, field: string): File[] {
   return entries.filter(
     (entry): entry is File => entry instanceof File && entry.size > 0
   );
+}
+
+interface GalleryAssetMoveOptions {
+  images: string[];
+  coverUrl?: string | null;
+  videoUrl?: string | null;
+  fromSlug: string;
+  toSlug: string;
+}
+
+async function moveGalleryAssets({
+  images,
+  coverUrl,
+  videoUrl,
+  fromSlug,
+  toSlug,
+}: GalleryAssetMoveOptions) {
+  const [nextCover, nextVideo, nextImages] = await Promise.all([
+    moveSingleAssetUrl(coverUrl, fromSlug, toSlug),
+    moveSingleAssetUrl(videoUrl, fromSlug, toSlug),
+    moveMultipleAssetUrls(images, fromSlug, toSlug),
+  ]);
+
+  return {
+    coverUrl: nextCover,
+    videoUrl: nextVideo,
+    images: nextImages,
+  };
+}
+
+async function moveMultipleAssetUrls(
+  urls: string[],
+  fromSlug: string,
+  toSlug: string
+): Promise<string[]> {
+  return Promise.all(
+    urls.map((url) => moveSingleAssetUrl(url, fromSlug, toSlug))
+  );
+}
+
+async function moveSingleAssetUrl(
+  signedUrl: string | null | undefined,
+  fromSlug: string,
+  toSlug: string
+): Promise<string> {
+  if (!signedUrl) {
+    return signedUrl ?? "";
+  }
+
+  const storagePath = getStoragePathFromUrl(signedUrl);
+  if (!storagePath) {
+    return signedUrl;
+  }
+
+  const newPath = getPathWithUpdatedSlug(storagePath, fromSlug, toSlug);
+  if (!newPath) {
+    return signedUrl;
+  }
+
+  try {
+    await moveFileInStorage(storagePath, newPath);
+    return await generateSignedUrl(newPath);
+  } catch (error) {
+    console.error("Failed to move gallery asset:", error);
+    return signedUrl;
+  }
+}
+
+function getPathWithUpdatedSlug(
+  path: string,
+  fromSlug: string,
+  toSlug: string
+): string | null {
+  const prefix = `${GALLERIES_FOLDER}/${fromSlug}/`;
+  if (!path.startsWith(prefix)) {
+    return null;
+  }
+  const suffix = path.slice(prefix.length);
+  return `${GALLERIES_FOLDER}/${toSlug}/${suffix}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -67,19 +150,19 @@ export async function POST(request: NextRequest) {
     if (coverFile) {
       const ext = extractExtension(coverFile.name) || ".jpg";
       coverUrl = await uploadFileToStorage(coverFile, {
-        path: `galleries/${normalizedSlug}/cover${ext}`,
+        path: `${GALLERIES_FOLDER}/${normalizedSlug}/cover${ext}`,
       });
     }
 
     const uploadedImages = await uploadMultipleFiles(galleryImages, {
-      folder: `galleries/${normalizedSlug}/images`,
+      folder: `${GALLERIES_FOLDER}/${normalizedSlug}/images`,
     });
 
     let videoUrl = "";
     if (videoFile) {
       const ext = extractExtension(videoFile.name) || ".mp4";
       videoUrl = await uploadFileToStorage(videoFile, {
-        path: `galleries/${normalizedSlug}/video${ext}`,
+        path: `${GALLERIES_FOLDER}/${normalizedSlug}/video${ext}`,
       });
     }
 
@@ -162,6 +245,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const storageSlug = slug || previousSlug || id;
+    const slugChanged =
+      Boolean(slug) && Boolean(previousSlug) && slug !== previousSlug;
     const coverFile = getSingleFile(formData, "coverImage");
     const newImageFiles = getFiles(formData, "galleryImages");
     const videoFile = getSingleFile(formData, "galleryVideo");
@@ -187,26 +272,44 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    let coverUrl = formData.get("existingCoverImage")?.toString() ?? "";
+    let videoUrl = formData.get("existingVideoUrl")?.toString() ?? "";
+
+    if (slugChanged && previousSlug && slug) {
+      try {
+        const movedAssets = await moveGalleryAssets({
+          images,
+          coverUrl,
+          videoUrl,
+          fromSlug: previousSlug,
+          toSlug: slug,
+        });
+        images = movedAssets.images;
+        coverUrl = movedAssets.coverUrl;
+        videoUrl = movedAssets.videoUrl;
+      } catch (error) {
+        console.error("Failed to move gallery assets:", error);
+      }
+    }
+
     if (newImageFiles.length) {
       const uploaded = await uploadMultipleFiles(newImageFiles, {
-        folder: `galleries/${storageSlug}/images`,
+        folder: `${GALLERIES_FOLDER}/${storageSlug}/images`,
       });
       images = [...images, ...uploaded];
     }
 
-    let coverUrl = formData.get("existingCoverImage")?.toString() ?? "";
     if (coverFile) {
       const ext = extractExtension(coverFile.name) || ".jpg";
       coverUrl = await uploadFileToStorage(coverFile, {
-        path: `galleries/${storageSlug}/cover${ext}`,
+        path: `${GALLERIES_FOLDER}/${storageSlug}/cover${ext}`,
       });
     }
 
-    let videoUrl = formData.get("existingVideoUrl")?.toString() ?? "";
     if (videoFile) {
       const ext = extractExtension(videoFile.name) || ".mp4";
       videoUrl = await uploadFileToStorage(videoFile, {
-        path: `galleries/${storageSlug}/video${ext}`,
+        path: `${GALLERIES_FOLDER}/${storageSlug}/video${ext}`,
       });
     }
 
