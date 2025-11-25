@@ -1,1 +1,8 @@
-update the ProfileForm field to add a portrait image, store it in the storage first under a folder structure that makes sense, and make sure only one portrait image can be added. After that save it to the profile document along side the other fields, you will need to update ProfileDocument to add this field which is a string field. Finally, in the home page, HomePageContent use this image and make sure the latest is always shown with (cacheBuster) if required, and if the field does not exist then set it to the profile-portrait.PNG that in my /public folder.
+GB stored: No-cost up to 5 GB
+Then $0.026/GB
+GB downloaded: No-cost up to 1 GB/day
+Then $0.12/GB
+Upload operations: No-cost up to 20K/day
+Then $0.05/10K
+Download operations: No-cost up to 50K/day
+Then $0.004/10K

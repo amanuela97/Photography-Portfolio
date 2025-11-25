@@ -5,6 +5,7 @@ import GalleriesManager from "./sections/galleries-manager";
 import PhotosManager from "./sections/photos-manager";
 import TestimonialsManager from "./sections/testimonials-manager";
 import FilmsManager from "./sections/films-manager";
+import StorageLedgerManager from "./sections/storage-ledger-manager";
 import { LogoutButton } from "@/app/(site)/components/logout-button";
 import { adminAuth } from "@/utils/firebase/admin";
 import { AdminTabs } from "./components/admin-tabs";
@@ -22,6 +23,11 @@ const sections = [
     content: <TestimonialsManager />,
   },
   { value: "films", label: "Films", content: <FilmsManager /> },
+  {
+    value: "storage",
+    label: "Storage",
+    content: <StorageLedgerManager />,
+  },
 ];
 
 async function getUserEmail(): Promise<string | null> {

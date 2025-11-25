@@ -1,6 +1,11 @@
 import { adminStorage } from "@/utils/firebase/admin";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
+import {
+  ensureStorageCapacity,
+  recordDeletion,
+  recordSuccessfulUpload,
+} from "@/utils/storage-ledger";
 
 interface UploadOptions {
   folder?: string;
@@ -40,6 +45,8 @@ export async function uploadFileToStorage(
     objectPath = ensureExtension(objectPath, extension);
   }
 
+  await ensureStorageCapacity(buffer.length);
+
   const destinationFile = adminStorage.file(objectPath);
   await destinationFile.save(buffer, {
     resumable: false,
@@ -48,6 +55,13 @@ export async function uploadFileToStorage(
       cacheControl: "public,max-age=31536000",
     },
   });
+
+  try {
+    await recordSuccessfulUpload(buffer.length);
+  } catch (error) {
+    await destinationFile.delete().catch(() => null);
+    throw error;
+  }
 
   return generateSignedUrl(objectPath);
 }
@@ -85,8 +99,27 @@ export async function deleteFilesInFolder(folder: string): Promise<void> {
   const folderPath = trimSlashes(folder);
   const [files] = await adminStorage.getFiles({ prefix: `${folderPath}/` });
 
-  // Delete all files in the folder
-  await Promise.all(files.map((file) => file.delete()));
+  let totalBytes = 0;
+
+  for (const file of files) {
+    try {
+      const [metadata] = await file.getMetadata();
+      totalBytes += Number(metadata.size ?? 0);
+    } catch (error) {
+      console.error(
+        "Failed to read metadata before deletion:",
+        file.name,
+        error
+      );
+    }
+    await file.delete().catch((error) => {
+      console.error("Failed to delete file:", file.name, error);
+    });
+  }
+
+  if (totalBytes > 0 && files.length > 0) {
+    await recordDeletion(totalBytes, files.length);
+  }
 }
 
 export async function moveFolder(
@@ -184,7 +217,17 @@ export async function deleteFileByUrl(signedUrl: string): Promise<void> {
     // Check if file exists before deleting
     const [exists] = await file.exists();
     if (exists) {
+      let bytes = 0;
+      try {
+        const [metadata] = await file.getMetadata();
+        bytes = Number(metadata.size ?? 0);
+      } catch (error) {
+        console.error("Failed to read metadata for file:", filePath, error);
+      }
       await file.delete();
+      if (bytes > 0) {
+        await recordDeletion(bytes, 1);
+      }
     }
   } catch (error) {
     console.error("Error deleting file from storage:", error);
