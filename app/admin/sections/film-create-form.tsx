@@ -65,7 +65,10 @@ export function FilmCreateForm() {
             try {
               videoUrl = await uploadFileToStorageClient(
                 videoFile,
-                storagePath
+                storagePath,
+                (progress) => {
+                  setVideoProgress(10 + progress * 0.9); // 10-100%
+                }
               );
             } catch (error) {
               console.error("Video upload error:", error);
@@ -75,7 +78,6 @@ export function FilmCreateForm() {
                   : "Failed to upload video. Please check the file size and try again."
               );
             }
-            setVideoProgress(80);
 
             // Now create film with URL only (no file)
             const filmFormData = new FormData();

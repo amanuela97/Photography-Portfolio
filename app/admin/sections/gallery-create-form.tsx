@@ -88,81 +88,103 @@ export function GalleryCreateForm() {
 
             const galleryFolder = `galleries/${normalizedSlug}`;
 
-            // Upload cover image directly to Firebase Storage
+            // Upload all files in parallel for maximum speed
+            const uploadPromises: Promise<void>[] = [];
+
+            // Upload cover image
             if (coverFiles.length > 0 && coverFiles[0]) {
-              setCoverProgress(20);
               const coverFile = coverFiles[0];
               const ext = coverFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
               const storagePath = `${galleryFolder}/cover${ext}`;
 
-              try {
-                coverUrl = await uploadFileToStorageClient(
-                  coverFile,
-                  storagePath
-                );
-                setCoverProgress(60);
-              } catch (error) {
-                console.error("Cover image upload error:", error);
-                throw new Error(
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to upload cover image. Please check the file size and try again."
-                );
-              }
-            }
-
-            // Upload gallery images directly to Firebase Storage in parallel
-            if (imageFiles.length > 0) {
-              setImagesProgress(20);
-              const imageUploadPromises = imageFiles.map(
-                async (file, index) => {
-                  const ext = file.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
-                  const storagePath = `${galleryFolder}/images/${Date.now()}-${index}${ext}`;
-
-                  try {
-                    return await uploadFileToStorageClient(file, storagePath);
-                  } catch (error) {
-                    console.error(`Image ${index + 1} upload error:`, error);
+              uploadPromises.push(
+                uploadFileToStorageClient(coverFile, storagePath, (progress) => {
+                  setCoverProgress(20 + (progress * 0.4)); // 20-60%
+                })
+                  .then((url) => {
+                    coverUrl = url;
+                    setCoverProgress(100);
+                  })
+                  .catch((error) => {
+                    console.error("Cover image upload error:", error);
                     throw new Error(
                       error instanceof Error
                         ? error.message
-                        : `Failed to upload image ${
-                            index + 1
-                          }. Please check the file size and try again.`
+                        : "Failed to upload cover image. Please check the file size and try again."
                     );
-                  }
-                }
+                  })
               );
-
-              const urls = await Promise.all(imageUploadPromises);
-              uploadedImageUrls.push(...urls);
-              setImagesProgress(100);
             }
 
-            // Upload video directly to Firebase Storage
+            // Upload gallery images in parallel
+            if (imageFiles.length > 0) {
+              const totalImages = imageFiles.length;
+              imageFiles.forEach((file, index) => {
+                const ext = file.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+                const storagePath = `${galleryFolder}/images/${Date.now()}-${index}${ext}`;
+
+                uploadPromises.push(
+                  uploadFileToStorageClient(
+                    file,
+                    storagePath,
+                    (progress) => {
+                      // Distribute progress across all images
+                      const baseProgress = 20;
+                      const imageProgress = (progress / totalImages) * 0.6; // 20-80%
+                      const currentImageProgress =
+                        (index / totalImages) * 0.6;
+                      setImagesProgress(
+                        baseProgress + currentImageProgress + imageProgress
+                      );
+                    }
+                  )
+                    .then((url) => {
+                      uploadedImageUrls.push(url);
+                      // Update progress when each image completes
+                      const completed = uploadedImageUrls.length;
+                      setImagesProgress(20 + (completed / totalImages) * 80);
+                    })
+                    .catch((error) => {
+                      console.error(`Image ${index + 1} upload error:`, error);
+                      throw new Error(
+                        error instanceof Error
+                          ? error.message
+                          : `Failed to upload image ${
+                              index + 1
+                            }. Please check the file size and try again.`
+                      );
+                    })
+                );
+              });
+            }
+
+            // Upload video
             if (videoFiles.length > 0 && videoFiles[0]) {
-              setVideoProgress(20);
               const videoFile = videoFiles[0];
               const ext = videoFile.name.match(/\.[^/.]+$/)?.at(0) || ".mp4";
               const storagePath = `${galleryFolder}/video${ext}`;
 
-              try {
-                videoUrl = await uploadFileToStorageClient(
-                  videoFile,
-                  storagePath
-                );
-                setVideoProgress(100);
-              } catch (error) {
-                console.error("Video upload error:", error);
-                throw new Error(
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to upload video. Please check the file size and try again."
-                );
-              }
+              uploadPromises.push(
+                uploadFileToStorageClient(videoFile, storagePath, (progress) => {
+                  setVideoProgress(20 + progress * 0.8); // 20-100%
+                })
+                  .then((url) => {
+                    videoUrl = url;
+                    setVideoProgress(100);
+                  })
+                  .catch((error) => {
+                    console.error("Video upload error:", error);
+                    throw new Error(
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to upload video. Please check the file size and try again."
+                    );
+                  })
+              );
             }
 
-            setCoverProgress(coverUrl ? 100 : 0);
+            // Wait for all uploads to complete in parallel
+            await Promise.all(uploadPromises);
 
             // Now create gallery with URLs only (no files)
             const galleryFormData = new FormData();
