@@ -7,7 +7,7 @@ import {
   updatePhoto,
 } from "@/utils/data-access/photos";
 import type { ActionState } from "./action-state";
-import type { EventType } from "@/utils/types";
+import type { EventType, CoverPageType } from "@/utils/types";
 
 const PHOTOS_TAG = "photos";
 const FAVORITE_PHOTOS_TAG = "favorite-photos";
@@ -30,6 +30,8 @@ export async function createPhotoAction(
       eventType: (formData.get("eventType")?.toString() ??
         "Other") as EventType,
       isFavorite: formData.get("isFavorite") === "on",
+      isCoverFor: (formData.get("isCoverFor")?.toString() ??
+        "NONE") as CoverPageType,
     });
 
     revalidatePath("/admin");
