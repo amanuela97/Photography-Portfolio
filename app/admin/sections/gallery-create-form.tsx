@@ -101,13 +101,50 @@ export function GalleryCreateForm() {
                 body: uploadFormData,
               });
 
-              const uploadResult = await uploadResponse.json();
+              // Check content-type before parsing JSON
+              const uploadContentType =
+                uploadResponse.headers.get("content-type");
+              let uploadResult: {
+                success?: boolean;
+                url?: string;
+                error?: string;
+              };
+
+              if (uploadContentType?.includes("application/json")) {
+                try {
+                  uploadResult = (await uploadResponse.json()) as {
+                    success?: boolean;
+                    url?: string;
+                    error?: string;
+                  };
+                } catch {
+                  const text = await uploadResponse.text();
+                  console.error("Failed to parse upload JSON response:", text);
+                  throw new Error(
+                    uploadResponse.status >= 500
+                      ? "Server error occurred during upload. Please try again later."
+                      : "Failed to upload cover image. Please check the file size and try again."
+                  );
+                }
+              } else {
+                const text = await uploadResponse.text();
+                console.error(
+                  "Non-JSON upload response:",
+                  text.substring(0, 200)
+                );
+                throw new Error(
+                  uploadResponse.status >= 500
+                    ? "Server error occurred during upload. Please try again later."
+                    : "Failed to upload cover image. Please check the file size and try again."
+                );
+              }
+
               if (!uploadResponse.ok) {
                 throw new Error(
                   uploadResult.error || "Failed to upload cover image"
                 );
               }
-              coverUrl = uploadResult.url;
+              coverUrl = uploadResult.url || null;
               setCoverProgress(60);
             }
 
@@ -125,14 +162,58 @@ export function GalleryCreateForm() {
                     body: uploadFormData,
                   });
 
-                  const uploadResult = await uploadResponse.json();
+                  // Check content-type before parsing JSON
+                  const uploadContentType =
+                    uploadResponse.headers.get("content-type");
+                  let uploadResult: {
+                    success?: boolean;
+                    url?: string;
+                    error?: string;
+                  };
+
+                  if (uploadContentType?.includes("application/json")) {
+                    try {
+                      uploadResult = (await uploadResponse.json()) as {
+                        success?: boolean;
+                        url?: string;
+                        error?: string;
+                      };
+                    } catch {
+                      const text = await uploadResponse.text();
+                      console.error(
+                        "Failed to parse upload JSON response:",
+                        text
+                      );
+                      throw new Error(
+                        uploadResponse.status >= 500
+                          ? "Server error occurred during upload. Please try again later."
+                          : `Failed to upload image ${
+                              index + 1
+                            }. Please check the file size and try again.`
+                      );
+                    }
+                  } else {
+                    const text = await uploadResponse.text();
+                    console.error(
+                      "Non-JSON upload response:",
+                      text.substring(0, 200)
+                    );
+                    throw new Error(
+                      uploadResponse.status >= 500
+                        ? "Server error occurred during upload. Please try again later."
+                        : `Failed to upload image ${
+                            index + 1
+                          }. Please check the file size and try again.`
+                    );
+                  }
+
                   if (!uploadResponse.ok) {
                     throw new Error(
                       uploadResult.error ||
                         `Failed to upload image ${index + 1}`
                     );
                   }
-                  return uploadResult.url;
+                  return uploadResult.url || "";
                 }
               );
 
@@ -155,11 +236,48 @@ export function GalleryCreateForm() {
                 body: uploadFormData,
               });
 
-              const uploadResult = await uploadResponse.json();
+              // Check content-type before parsing JSON
+              const uploadContentType =
+                uploadResponse.headers.get("content-type");
+              let uploadResult: {
+                success?: boolean;
+                url?: string;
+                error?: string;
+              };
+
+              if (uploadContentType?.includes("application/json")) {
+                try {
+                  uploadResult = (await uploadResponse.json()) as {
+                    success?: boolean;
+                    url?: string;
+                    error?: string;
+                  };
+                } catch {
+                  const text = await uploadResponse.text();
+                  console.error("Failed to parse upload JSON response:", text);
+                  throw new Error(
+                    uploadResponse.status >= 500
+                      ? "Server error occurred during upload. Please try again later."
+                      : "Failed to upload video. Please check the file size and try again."
+                  );
+                }
+              } else {
+                const text = await uploadResponse.text();
+                console.error(
+                  "Non-JSON upload response:",
+                  text.substring(0, 200)
+                );
+                throw new Error(
+                  uploadResponse.status >= 500
+                    ? "Server error occurred during upload. Please try again later."
+                    : "Failed to upload video. Please check the file size and try again."
+                );
+              }
+
               if (!uploadResponse.ok) {
                 throw new Error(uploadResult.error || "Failed to upload video");
               }
-              videoUrl = uploadResult.url;
+              videoUrl = uploadResult.url || "";
               setVideoProgress(100);
             }
 
