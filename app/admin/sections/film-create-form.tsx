@@ -44,14 +44,6 @@ export function FilmCreateForm() {
             setVideoProgress(10);
             toast.loading("Uploading film...", { id: "film-create" });
 
-            const form = e.currentTarget;
-            const formData = new FormData(form);
-
-            // Add video file if present
-            if (videoFiles.length > 0 && videoFiles[0]) {
-              formData.set("video", videoFiles[0]);
-            }
-
             if (!videoFiles.length || !videoFiles[0]) {
               toast.error("Video file is required.", { id: "film-create" });
               setIsCreating(false);
@@ -59,11 +51,38 @@ export function FilmCreateForm() {
               return;
             }
 
-            setVideoProgress(30);
+            const videoFile = videoFiles[0];
+            const form = e.currentTarget;
+            const formData = new FormData(form);
+
+            // Upload video file first to avoid Vercel payload size limits
+            setVideoProgress(10);
+            const ext = videoFile.name.match(/\.[^/.]+$/)?.at(0) || ".mp4";
+            const uploadFormData = new FormData();
+            uploadFormData.set("file", videoFile);
+            uploadFormData.set("path", `films/${Date.now()}${ext}`);
+
+            const uploadResponse = await fetch(getApiUrl("api/upload"), {
+              method: "POST",
+              body: uploadFormData,
+            });
+
+            const uploadResult = await uploadResponse.json();
+            if (!uploadResponse.ok) {
+              throw new Error(uploadResult.error || "Failed to upload video");
+            }
+
+            const videoUrl = uploadResult.url;
+            setVideoProgress(80);
+
+            // Now create film with URL only (no file)
+            const filmFormData = new FormData();
+            filmFormData.set("title", formData.get("title")?.toString() ?? "");
+            filmFormData.set("videoUrl", videoUrl);
 
             const response = await fetch(getApiUrl("api/films"), {
               method: "POST",
-              body: formData,
+              body: filmFormData,
             });
 
             const result = await response.json();

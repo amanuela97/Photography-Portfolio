@@ -80,24 +80,118 @@ export function GalleryCreateForm() {
             formData.set("slug", normalizedSlug);
             setSlugError(null);
 
-            // Add files if present
+            // Upload files first to avoid Vercel payload size limits
+            let coverUrl: string | null = null;
+            const uploadedImageUrls: string[] = [];
+            let videoUrl = "";
+
+            const galleryFolder = `galleries/${normalizedSlug}`;
+
+            // Upload cover image
             if (coverFiles.length > 0 && coverFiles[0]) {
-              formData.set("coverImage", coverFiles[0]);
-            }
-            imageFiles.forEach((file) => {
-              formData.append("galleryImages", file);
-            });
-            if (videoFiles.length > 0 && videoFiles[0]) {
-              formData.set("galleryVideo", videoFiles[0]);
+              setCoverProgress(20);
+              const coverFile = coverFiles[0];
+              const ext = coverFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+              const uploadFormData = new FormData();
+              uploadFormData.set("file", coverFile);
+              uploadFormData.set("path", `${galleryFolder}/cover${ext}`);
+
+              const uploadResponse = await fetch(getApiUrl("api/upload"), {
+                method: "POST",
+                body: uploadFormData,
+              });
+
+              const uploadResult = await uploadResponse.json();
+              if (!uploadResponse.ok) {
+                throw new Error(
+                  uploadResult.error || "Failed to upload cover image"
+                );
+              }
+              coverUrl = uploadResult.url;
+              setCoverProgress(60);
             }
 
-            setCoverProgress(30);
-            setImagesProgress(30);
-            setVideoProgress(30);
+            // Upload gallery images in parallel
+            if (imageFiles.length > 0) {
+              setImagesProgress(20);
+              const imageUploadPromises = imageFiles.map(
+                async (file, index) => {
+                  const uploadFormData = new FormData();
+                  uploadFormData.set("file", file);
+                  uploadFormData.set("folder", `${galleryFolder}/images`);
+
+                  const uploadResponse = await fetch(getApiUrl("api/upload"), {
+                    method: "POST",
+                    body: uploadFormData,
+                  });
+
+                  const uploadResult = await uploadResponse.json();
+                  if (!uploadResponse.ok) {
+                    throw new Error(
+                      uploadResult.error ||
+                        `Failed to upload image ${index + 1}`
+                    );
+                  }
+                  return uploadResult.url;
+                }
+              );
+
+              const urls = await Promise.all(imageUploadPromises);
+              uploadedImageUrls.push(...urls);
+              setImagesProgress(100);
+            }
+
+            // Upload video
+            if (videoFiles.length > 0 && videoFiles[0]) {
+              setVideoProgress(20);
+              const videoFile = videoFiles[0];
+              const ext = videoFile.name.match(/\.[^/.]+$/)?.at(0) || ".mp4";
+              const uploadFormData = new FormData();
+              uploadFormData.set("file", videoFile);
+              uploadFormData.set("path", `${galleryFolder}/video${ext}`);
+
+              const uploadResponse = await fetch(getApiUrl("api/upload"), {
+                method: "POST",
+                body: uploadFormData,
+              });
+
+              const uploadResult = await uploadResponse.json();
+              if (!uploadResponse.ok) {
+                throw new Error(uploadResult.error || "Failed to upload video");
+              }
+              videoUrl = uploadResult.url;
+              setVideoProgress(100);
+            }
+
+            setCoverProgress(coverUrl ? 100 : 0);
+
+            // Now create gallery with URLs only (no files)
+            const galleryFormData = new FormData();
+            galleryFormData.set("slug", normalizedSlug);
+            galleryFormData.set(
+              "title",
+              formData.get("title")?.toString() ?? ""
+            );
+            galleryFormData.set(
+              "description",
+              formData.get("description")?.toString() ?? ""
+            );
+            if (coverUrl) {
+              galleryFormData.set("coverImageUrl", coverUrl);
+            }
+            uploadedImageUrls.forEach((url) => {
+              galleryFormData.append("galleryImageUrls", url);
+            });
+            if (videoUrl) {
+              galleryFormData.set("videoUrl", videoUrl);
+            }
+            if (formData.get("isFeatured") === "on") {
+              galleryFormData.set("isFeatured", "on");
+            }
 
             const response = await fetch(getApiUrl("api/galleries"), {
               method: "POST",
-              body: formData,
+              body: galleryFormData,
             });
 
             // Check content-type before parsing JSON

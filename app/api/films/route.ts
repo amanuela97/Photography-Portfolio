@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const title = formData.get("title")?.toString() ?? "";
+    
+    // Check if URL is provided (new approach - file uploaded separately)
+    // or file is provided (legacy approach)
+    const videoUrlParam = formData.get("videoUrl")?.toString();
     const videoFile = getSingleFile(formData, "video");
 
     if (!title.trim()) {
@@ -30,49 +34,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!videoFile) {
+    let url: string;
+
+    // Use URL if provided (new approach), otherwise upload file (backward compatibility)
+    if (videoUrlParam) {
+      url = videoUrlParam;
+    } else if (videoFile) {
+      // Check file size (500MB limit for videos)
+      const maxSize = 500 * 1024 * 1024;
+      if (videoFile.size > maxSize) {
+        return NextResponse.json(
+          { error: "Video file size exceeds 500MB limit" },
+          { status: 400 }
+        );
+      }
+
+      // Validate video file type
+      const validVideoTypes = [
+        "video/mp4",
+        "video/webm",
+        "video/ogg",
+        "video/quicktime",
+        "video/x-msvideo",
+      ];
+      if (!validVideoTypes.includes(videoFile.type)) {
+        return NextResponse.json(
+          {
+            error: "Invalid video file type. Supported: MP4, WebM, OGG, MOV, AVI",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Upload to Firebase Storage
+      const extension = extractExtension(videoFile.name) || ".mp4";
+      const uploadedUrl = await uploadFileToStorage(videoFile, {
+        path: `films/${Date.now()}${extension}`,
+      });
+
+      if (!uploadedUrl) {
+        return NextResponse.json(
+          { error: "Failed to upload video to storage." },
+          { status: 500 }
+        );
+      }
+      url = uploadedUrl;
+    } else {
       return NextResponse.json(
-        { error: "Video file is required." },
+        { error: "Video file or URL is required." },
         { status: 400 }
-      );
-    }
-
-    // Check file size (500MB limit for videos)
-    const maxSize = 500 * 1024 * 1024;
-    if (videoFile.size > maxSize) {
-      return NextResponse.json(
-        { error: "Video file size exceeds 500MB limit" },
-        { status: 400 }
-      );
-    }
-
-    // Validate video file type
-    const validVideoTypes = [
-      "video/mp4",
-      "video/webm",
-      "video/ogg",
-      "video/quicktime",
-      "video/x-msvideo",
-    ];
-    if (!validVideoTypes.includes(videoFile.type)) {
-      return NextResponse.json(
-        {
-          error: "Invalid video file type. Supported: MP4, WebM, OGG, MOV, AVI",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Upload to Firebase Storage
-    const extension = extractExtension(videoFile.name) || ".mp4";
-    const url = await uploadFileToStorage(videoFile, {
-      path: `films/${Date.now()}${extension}`,
-    });
-
-    if (!url) {
-      return NextResponse.json(
-        { error: "Failed to upload video to storage." },
-        { status: 500 }
       );
     }
 
@@ -123,7 +133,22 @@ export async function PUT(request: NextRequest) {
     }
 
     // Handle video file update
-    if (videoFile) {
+    const videoUrlParam = formData.get("videoUrl")?.toString();
+    if (videoUrlParam) {
+      // New approach: URL provided (file uploaded separately)
+      // Get existing URL to delete old file
+      const existingUrl = formData.get("existingUrl")?.toString();
+      if (existingUrl) {
+        try {
+          await deleteFileByUrl(existingUrl);
+        } catch (error) {
+          console.error("Failed to delete old video file:", error);
+          // Non-fatal, continue with update
+        }
+      }
+      updateData.url = videoUrlParam;
+    } else if (videoFile) {
+      // Legacy approach: file provided
       // Check file size (500MB limit for videos)
       const maxSize = 500 * 1024 * 1024;
       if (videoFile.size > maxSize) {

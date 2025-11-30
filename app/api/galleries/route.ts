@@ -142,48 +142,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if URLs are provided (new approach - files uploaded separately)
+    // or files are provided (legacy approach)
+    const coverImageUrl = formData.get("coverImageUrl")?.toString();
+    const galleryImageUrls = formData
+      .getAll("galleryImageUrls")
+      .map((url) => url.toString());
+    const videoUrlParam = formData.get("videoUrl")?.toString();
+
     const coverFile = getSingleFile(formData, "coverImage");
     const galleryImages = getFiles(formData, "galleryImages");
     const videoFile = getSingleFile(formData, "galleryVideo");
 
-    // Upload files in parallel for better performance
-    const uploadPromises: [
-      Promise<string | null>,
-      Promise<string[]>,
-      Promise<string>
-    ] = [
-      coverFile
-        ? uploadFileToStorage(coverFile, {
-            path: `${GALLERIES_FOLDER}/${normalizedSlug}/cover${extractExtension(coverFile.name) || ".jpg"}`,
-          }).catch((error) => {
-            console.error("Cover image upload error:", error);
-            throw new Error(`Failed to upload cover image: ${error.message}`);
-          })
-        : Promise.resolve(null),
-      galleryImages.length > 0
-        ? uploadMultipleFiles(galleryImages, {
-            folder: `${GALLERIES_FOLDER}/${normalizedSlug}/images`,
-          }).catch((error) => {
-            console.error("Gallery images upload error:", error);
-            throw new Error(
-              `Failed to upload gallery images: ${error.message}`
-            );
-          })
-        : Promise.resolve([]),
-      videoFile
-        ? uploadFileToStorage(videoFile, {
-            path: `${GALLERIES_FOLDER}/${normalizedSlug}/video${extractExtension(videoFile.name) || ".mp4"}`,
-          }).catch((error) => {
-            console.error("Video upload error:", error);
-            throw new Error(`Failed to upload video: ${error.message}`);
-          })
-        : Promise.resolve(""),
-    ];
+    let coverUrl: string | null = null;
+    let uploadedImages: string[] = [];
+    let videoUrl = "";
 
-    // Wait for all uploads to complete in parallel
-    const [coverUrl, uploadedImages, videoUrl] = await Promise.all(
-      uploadPromises
-    );
+    // Use URLs if provided (new approach), otherwise upload files (backward compatibility)
+    if (coverImageUrl) {
+      coverUrl = coverImageUrl;
+    } else if (coverFile) {
+      const ext = extractExtension(coverFile.name) || ".jpg";
+      coverUrl = await uploadFileToStorage(coverFile, {
+        path: `${GALLERIES_FOLDER}/${normalizedSlug}/cover${ext}`,
+      });
+    }
+
+    if (galleryImageUrls.length > 0) {
+      uploadedImages = galleryImageUrls;
+    } else if (galleryImages.length > 0) {
+      uploadedImages = await uploadMultipleFiles(galleryImages, {
+        folder: `${GALLERIES_FOLDER}/${normalizedSlug}/images`,
+      });
+    }
+
+    if (videoUrlParam) {
+      videoUrl = videoUrlParam;
+    } else if (videoFile) {
+      const ext = extractExtension(videoFile.name) || ".mp4";
+      videoUrl = await uploadFileToStorage(videoFile, {
+        path: `${GALLERIES_FOLDER}/${normalizedSlug}/video${ext}`,
+      });
+    }
 
     await createGallery({
       slug: normalizedSlug,
