@@ -70,12 +70,20 @@ export async function uploadMultipleFiles(
   files: File[],
   options: Omit<UploadOptions, "path">
 ): Promise<string[]> {
-  const uploads: string[] = [];
-  for (const file of files) {
-    if (!(file instanceof File) || file.size === 0) continue;
-    uploads.push(await uploadFileToStorage(file, options));
+  const validFiles = files.filter(
+    (file) => file instanceof File && file.size > 0
+  );
+
+  if (validFiles.length === 0) {
+    return [];
   }
-  return uploads;
+
+  // Upload files in parallel for better performance
+  const uploadPromises = validFiles.map((file) =>
+    uploadFileToStorage(file, options)
+  );
+
+  return Promise.all(uploadPromises);
 }
 
 function extractExtension(name: string): string {

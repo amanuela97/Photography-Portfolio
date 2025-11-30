@@ -146,33 +146,52 @@ export async function POST(request: NextRequest) {
     const galleryImages = getFiles(formData, "galleryImages");
     const videoFile = getSingleFile(formData, "galleryVideo");
 
-    let coverUrl: string | null = null;
-    if (coverFile) {
-      const ext = extractExtension(coverFile.name) || ".jpg";
-      coverUrl = await uploadFileToStorage(coverFile, {
-        path: `${GALLERIES_FOLDER}/${normalizedSlug}/cover${ext}`,
-      });
-    }
+    // Upload files in parallel for better performance
+    const uploadPromises: [
+      Promise<string | null>,
+      Promise<string[]>,
+      Promise<string>
+    ] = [
+      coverFile
+        ? uploadFileToStorage(coverFile, {
+            path: `${GALLERIES_FOLDER}/${normalizedSlug}/cover${extractExtension(coverFile.name) || ".jpg"}`,
+          }).catch((error) => {
+            console.error("Cover image upload error:", error);
+            throw new Error(`Failed to upload cover image: ${error.message}`);
+          })
+        : Promise.resolve(null),
+      galleryImages.length > 0
+        ? uploadMultipleFiles(galleryImages, {
+            folder: `${GALLERIES_FOLDER}/${normalizedSlug}/images`,
+          }).catch((error) => {
+            console.error("Gallery images upload error:", error);
+            throw new Error(
+              `Failed to upload gallery images: ${error.message}`
+            );
+          })
+        : Promise.resolve([]),
+      videoFile
+        ? uploadFileToStorage(videoFile, {
+            path: `${GALLERIES_FOLDER}/${normalizedSlug}/video${extractExtension(videoFile.name) || ".mp4"}`,
+          }).catch((error) => {
+            console.error("Video upload error:", error);
+            throw new Error(`Failed to upload video: ${error.message}`);
+          })
+        : Promise.resolve(""),
+    ];
 
-    const uploadedImages = await uploadMultipleFiles(galleryImages, {
-      folder: `${GALLERIES_FOLDER}/${normalizedSlug}/images`,
-    });
-
-    let videoUrl = "";
-    if (videoFile) {
-      const ext = extractExtension(videoFile.name) || ".mp4";
-      videoUrl = await uploadFileToStorage(videoFile, {
-        path: `${GALLERIES_FOLDER}/${normalizedSlug}/video${ext}`,
-      });
-    }
+    // Wait for all uploads to complete in parallel
+    const [coverUrl, uploadedImages, videoUrl] = await Promise.all(
+      uploadPromises
+    );
 
     await createGallery({
       slug: normalizedSlug,
       title: formData.get("title")?.toString() ?? "",
       description: formData.get("description")?.toString() ?? "",
-      coverImageUrl: coverUrl,
-      images: uploadedImages,
-      video: videoUrl,
+      coverImageUrl: coverUrl as string | null,
+      images: (uploadedImages as string[]) || [],
+      video: (videoUrl as string) || "",
       isFeatured: formData.get("isFeatured") === "on",
     });
 
@@ -194,8 +213,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Gallery create error:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+          ? error
+          : "Failed to create gallery";
+    
+    // Log full error details for debugging
+    if (error instanceof Error) {
+      console.error("Error stack:", error.stack);
+      console.error("Error name:", error.name);
+    }
+    
     return NextResponse.json(
-      { error: (error as Error).message || "Failed to create gallery" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
