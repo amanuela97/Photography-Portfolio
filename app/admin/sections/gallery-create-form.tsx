@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import { MediaDropzone } from "../components/media-dropzone";
 import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
 import { getApiUrl } from "@/utils/api-url";
+import { uploadFileToStorageClient } from "@/utils/firebase/client-upload";
 
 interface GalleryCreateResponse {
   success?: boolean;
@@ -87,133 +88,49 @@ export function GalleryCreateForm() {
 
             const galleryFolder = `galleries/${normalizedSlug}`;
 
-            // Upload cover image
+            // Upload cover image directly to Firebase Storage
             if (coverFiles.length > 0 && coverFiles[0]) {
               setCoverProgress(20);
               const coverFile = coverFiles[0];
               const ext = coverFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
-              const uploadFormData = new FormData();
-              uploadFormData.set("file", coverFile);
-              uploadFormData.set("path", `${galleryFolder}/cover${ext}`);
+              const storagePath = `${galleryFolder}/cover${ext}`;
 
-              const uploadResponse = await fetch(getApiUrl("api/upload"), {
-                method: "POST",
-                body: uploadFormData,
-              });
-
-              // Check content-type before parsing JSON
-              const uploadContentType =
-                uploadResponse.headers.get("content-type");
-              let uploadResult: {
-                success?: boolean;
-                url?: string;
-                error?: string;
-              };
-
-              if (uploadContentType?.includes("application/json")) {
-                try {
-                  uploadResult = (await uploadResponse.json()) as {
-                    success?: boolean;
-                    url?: string;
-                    error?: string;
-                  };
-                } catch {
-                  const text = await uploadResponse.text();
-                  console.error("Failed to parse upload JSON response:", text);
-                  throw new Error(
-                    uploadResponse.status >= 500
-                      ? "Server error occurred during upload. Please try again later."
-                      : "Failed to upload cover image. Please check the file size and try again."
-                  );
-                }
-              } else {
-                const text = await uploadResponse.text();
-                console.error(
-                  "Non-JSON upload response:",
-                  text.substring(0, 200)
+              try {
+                coverUrl = await uploadFileToStorageClient(
+                  coverFile,
+                  storagePath
                 );
+                setCoverProgress(60);
+              } catch (error) {
+                console.error("Cover image upload error:", error);
                 throw new Error(
-                  uploadResponse.status >= 500
-                    ? "Server error occurred during upload. Please try again later."
+                  error instanceof Error
+                    ? error.message
                     : "Failed to upload cover image. Please check the file size and try again."
                 );
               }
-
-              if (!uploadResponse.ok) {
-                throw new Error(
-                  uploadResult.error || "Failed to upload cover image"
-                );
-              }
-              coverUrl = uploadResult.url || null;
-              setCoverProgress(60);
             }
 
-            // Upload gallery images in parallel
+            // Upload gallery images directly to Firebase Storage in parallel
             if (imageFiles.length > 0) {
               setImagesProgress(20);
               const imageUploadPromises = imageFiles.map(
                 async (file, index) => {
-                  const uploadFormData = new FormData();
-                  uploadFormData.set("file", file);
-                  uploadFormData.set("folder", `${galleryFolder}/images`);
+                  const ext = file.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+                  const storagePath = `${galleryFolder}/images/${Date.now()}-${index}${ext}`;
 
-                  const uploadResponse = await fetch(getApiUrl("api/upload"), {
-                    method: "POST",
-                    body: uploadFormData,
-                  });
-
-                  // Check content-type before parsing JSON
-                  const uploadContentType =
-                    uploadResponse.headers.get("content-type");
-                  let uploadResult: {
-                    success?: boolean;
-                    url?: string;
-                    error?: string;
-                  };
-
-                  if (uploadContentType?.includes("application/json")) {
-                    try {
-                      uploadResult = (await uploadResponse.json()) as {
-                        success?: boolean;
-                        url?: string;
-                        error?: string;
-                      };
-                    } catch {
-                      const text = await uploadResponse.text();
-                      console.error(
-                        "Failed to parse upload JSON response:",
-                        text
-                      );
-                      throw new Error(
-                        uploadResponse.status >= 500
-                          ? "Server error occurred during upload. Please try again later."
-                          : `Failed to upload image ${
-                              index + 1
-                            }. Please check the file size and try again.`
-                      );
-                    }
-                  } else {
-                    const text = await uploadResponse.text();
-                    console.error(
-                      "Non-JSON upload response:",
-                      text.substring(0, 200)
-                    );
+                  try {
+                    return await uploadFileToStorageClient(file, storagePath);
+                  } catch (error) {
+                    console.error(`Image ${index + 1} upload error:`, error);
                     throw new Error(
-                      uploadResponse.status >= 500
-                        ? "Server error occurred during upload. Please try again later."
+                      error instanceof Error
+                        ? error.message
                         : `Failed to upload image ${
                             index + 1
                           }. Please check the file size and try again.`
                     );
                   }
-
-                  if (!uploadResponse.ok) {
-                    throw new Error(
-                      uploadResult.error ||
-                        `Failed to upload image ${index + 1}`
-                    );
-                  }
-                  return uploadResult.url || "";
                 }
               );
 
@@ -222,63 +139,27 @@ export function GalleryCreateForm() {
               setImagesProgress(100);
             }
 
-            // Upload video
+            // Upload video directly to Firebase Storage
             if (videoFiles.length > 0 && videoFiles[0]) {
               setVideoProgress(20);
               const videoFile = videoFiles[0];
               const ext = videoFile.name.match(/\.[^/.]+$/)?.at(0) || ".mp4";
-              const uploadFormData = new FormData();
-              uploadFormData.set("file", videoFile);
-              uploadFormData.set("path", `${galleryFolder}/video${ext}`);
+              const storagePath = `${galleryFolder}/video${ext}`;
 
-              const uploadResponse = await fetch(getApiUrl("api/upload"), {
-                method: "POST",
-                body: uploadFormData,
-              });
-
-              // Check content-type before parsing JSON
-              const uploadContentType =
-                uploadResponse.headers.get("content-type");
-              let uploadResult: {
-                success?: boolean;
-                url?: string;
-                error?: string;
-              };
-
-              if (uploadContentType?.includes("application/json")) {
-                try {
-                  uploadResult = (await uploadResponse.json()) as {
-                    success?: boolean;
-                    url?: string;
-                    error?: string;
-                  };
-                } catch {
-                  const text = await uploadResponse.text();
-                  console.error("Failed to parse upload JSON response:", text);
-                  throw new Error(
-                    uploadResponse.status >= 500
-                      ? "Server error occurred during upload. Please try again later."
-                      : "Failed to upload video. Please check the file size and try again."
-                  );
-                }
-              } else {
-                const text = await uploadResponse.text();
-                console.error(
-                  "Non-JSON upload response:",
-                  text.substring(0, 200)
+              try {
+                videoUrl = await uploadFileToStorageClient(
+                  videoFile,
+                  storagePath
                 );
+                setVideoProgress(100);
+              } catch (error) {
+                console.error("Video upload error:", error);
                 throw new Error(
-                  uploadResponse.status >= 500
-                    ? "Server error occurred during upload. Please try again later."
+                  error instanceof Error
+                    ? error.message
                     : "Failed to upload video. Please check the file size and try again."
                 );
               }
-
-              if (!uploadResponse.ok) {
-                throw new Error(uploadResult.error || "Failed to upload video");
-              }
-              videoUrl = uploadResult.url || "";
-              setVideoProgress(100);
             }
 
             setCoverProgress(coverUrl ? 100 : 0);

@@ -9,6 +9,7 @@ import { FormShell } from "../components/form-shell";
 import { MediaDropzone } from "../components/media-dropzone";
 import toast from "react-hot-toast";
 import { getApiUrl } from "@/utils/api-url";
+import { uploadFileToStorageClient } from "@/utils/firebase/client-upload";
 
 export function FilmCreateForm() {
   const router = useRouter();
@@ -55,61 +56,25 @@ export function FilmCreateForm() {
             const form = e.currentTarget;
             const formData = new FormData(form);
 
-            // Upload video file first to avoid Vercel payload size limits
+            // Upload video file directly to Firebase Storage to avoid Vercel payload size limits
             setVideoProgress(10);
             const ext = videoFile.name.match(/\.[^/.]+$/)?.at(0) || ".mp4";
-            const uploadFormData = new FormData();
-            uploadFormData.set("file", videoFile);
-            uploadFormData.set("path", `films/${Date.now()}${ext}`);
+            const storagePath = `films/${Date.now()}${ext}`;
 
-            const uploadResponse = await fetch(getApiUrl("api/upload"), {
-              method: "POST",
-              body: uploadFormData,
-            });
-
-            // Check content-type before parsing JSON
-            const uploadContentType =
-              uploadResponse.headers.get("content-type");
-            let uploadResult: {
-              success?: boolean;
-              url?: string;
-              error?: string;
-            };
-
-            if (uploadContentType?.includes("application/json")) {
-              try {
-                uploadResult = (await uploadResponse.json()) as {
-                  success?: boolean;
-                  url?: string;
-                  error?: string;
-                };
-              } catch {
-                const text = await uploadResponse.text();
-                console.error("Failed to parse upload JSON response:", text);
-                throw new Error(
-                  uploadResponse.status >= 500
-                    ? "Server error occurred during upload. Please try again later."
-                    : "Failed to upload video. Please check the file size and try again."
-                );
-              }
-            } else {
-              const text = await uploadResponse.text();
-              console.error(
-                "Non-JSON upload response:",
-                text.substring(0, 200)
+            let videoUrl: string;
+            try {
+              videoUrl = await uploadFileToStorageClient(
+                videoFile,
+                storagePath
               );
+            } catch (error) {
+              console.error("Video upload error:", error);
               throw new Error(
-                uploadResponse.status >= 500
-                  ? "Server error occurred during upload. Please try again later."
+                error instanceof Error
+                  ? error.message
                   : "Failed to upload video. Please check the file size and try again."
               );
             }
-
-            if (!uploadResponse.ok) {
-              throw new Error(uploadResult.error || "Failed to upload video");
-            }
-
-            const videoUrl = uploadResult.url || "";
             setVideoProgress(80);
 
             // Now create film with URL only (no file)
