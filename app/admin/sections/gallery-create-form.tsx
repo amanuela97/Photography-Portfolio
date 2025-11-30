@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface GalleryCreateResponse {
 }
 
 export function GalleryCreateForm() {
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const [coverFiles, setCoverFiles] = useState<File[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -281,6 +283,11 @@ export function GalleryCreateForm() {
             setSlugInput("");
             setSlugError(null);
             setFormKey((prev) => prev + 1);
+
+            // Navigate to gallery page with cache-busting query param to ensure fresh data
+            router.push(`/admin/gallery?t=${Date.now()}`);
+            // Also refresh the router to update any cached data
+            router.refresh();
           } catch (error) {
             console.error("Gallery create error:", error);
             toast.error(
