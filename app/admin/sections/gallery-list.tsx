@@ -21,6 +21,7 @@ import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
 import { MediaDropzone } from "../components/media-dropzone";
 import { appendCacheBuster } from "@/utils/cache-buster";
+import { getApiUrl } from "@/utils/api-url";
 
 interface GalleryListProps {
   galleries: GalleryDocument[];
@@ -149,7 +150,7 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
               setImagesProgress(30);
               setVideoProgress(30);
 
-              const response = await fetch("/api/galleries", {
+              const response = await fetch(getApiUrl("api/galleries"), {
                 method: "PUT",
                 body: formData,
               });
@@ -290,7 +291,7 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
                     const formData = new FormData();
                     formData.append("id", gallery.id);
 
-                    const response = await fetch("/api/galleries", {
+                    const response = await fetch(getApiUrl("api/galleries"), {
                       method: "DELETE",
                       body: formData,
                     });

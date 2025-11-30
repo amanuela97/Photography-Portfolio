@@ -10,6 +10,7 @@ import { FormShell } from "../components/form-shell";
 import toast from "react-hot-toast";
 import { MediaDropzone } from "../components/media-dropzone";
 import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
+import { getApiUrl } from "@/utils/api-url";
 
 interface GalleryCreateResponse {
   success?: boolean;
@@ -94,7 +95,7 @@ export function GalleryCreateForm() {
             setImagesProgress(30);
             setVideoProgress(30);
 
-            const response = await fetch("/api/galleries", {
+            const response = await fetch(getApiUrl("api/galleries"), {
               method: "POST",
               body: formData,
             });

@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import type { ProfileDocument, SocialLink, SocialType } from "@/utils/types";
 import { MediaDropzone } from "../components/media-dropzone";
 import { appendCacheBuster } from "@/utils/cache-buster";
+import { getApiUrl } from "@/utils/api-url";
 
 const SOCIAL_OPTIONS: SocialType[] = ["Instagram", "Facebook", "Twitter"];
 
@@ -83,7 +84,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         formData.set("portraitImage", portraitFiles[0]);
       }
 
-      const response = await fetch("/api/profile", {
+      const response = await fetch(getApiUrl("api/profile"), {
         method: "POST",
         body: formData,
       });

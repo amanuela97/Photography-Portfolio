@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getApiUrl } from "@/utils/api-url";
 
 interface StorageLedgerSnapshot {
   totalBytes: number;
@@ -43,7 +44,7 @@ export function StorageLedgerPanel({
   const [isReconciling, startReconcile] = useTransition();
 
   const fetchSnapshot = useCallback(async () => {
-    const response = await fetch("/api/storage-ledger", {
+    const response = await fetch(getApiUrl("api/storage-ledger"), {
       cache: "no-store",
     });
     if (!response.ok) {
@@ -120,7 +121,7 @@ export function StorageLedgerPanel({
   const handleReconcile = () =>
     startReconcile(async () => {
       try {
-        const response = await fetch("/api/storage-ledger", {
+        const response = await fetch(getApiUrl("api/storage-ledger"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "reconcile" }),

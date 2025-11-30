@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { FormShell } from "../components/form-shell";
 import { MediaDropzone } from "../components/media-dropzone";
 import toast from "react-hot-toast";
+import { getApiUrl } from "@/utils/api-url";
 
 export function FilmCreateForm() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export function FilmCreateForm() {
 
             setVideoProgress(30);
 
-            const response = await fetch("/api/films", {
+            const response = await fetch(getApiUrl("api/films"), {
               method: "POST",
               body: formData,
             });

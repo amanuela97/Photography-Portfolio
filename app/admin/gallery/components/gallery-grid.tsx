@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
 import { appendCacheBuster } from "@/utils/cache-buster";
+import { getApiUrl } from "@/utils/api-url";
 
 interface GalleryGridProps {
   galleries: GalleryDocument[];
@@ -39,7 +40,7 @@ export function GalleryGrid({ galleries: initialGalleries }: GalleryGridProps) {
       formData.append("id", gallery.id);
       formData.append("slug", gallery.slug);
 
-      const response = await fetch("/api/galleries", {
+      const response = await fetch(getApiUrl("api/galleries"), {
         method: "DELETE",
         body: formData,
       });

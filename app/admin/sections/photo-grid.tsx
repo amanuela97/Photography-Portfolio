@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
 import type { PhotoDocument, EventType, CoverPageType } from "@/utils/types";
+import { getApiUrl } from "@/utils/api-url";
 
 const EVENT_TYPES: EventType[] = [
   "Wedding",
@@ -170,7 +171,7 @@ function PhotoCard({
       formData.append("id", photo.id);
       formData.append("title", title.trim());
 
-      const response = await fetch("/api/photos", {
+      const response = await fetch(getApiUrl("api/photos"), {
         method: "PUT",
         body: formData,
       });
@@ -209,7 +210,7 @@ function PhotoCard({
       formData.append("id", photo.id);
       formData.append("eventType", eventType);
 
-      const response = await fetch("/api/photos", {
+      const response = await fetch(getApiUrl("api/photos"), {
         method: "PUT",
         body: formData,
       });
@@ -248,7 +249,7 @@ function PhotoCard({
       formData.append("id", photo.id);
       formData.append("isCoverFor", coverFor);
 
-      const response = await fetch("/api/photos", {
+      const response = await fetch(getApiUrl("api/photos"), {
         method: "PUT",
         body: formData,
       });
@@ -335,7 +336,7 @@ function PhotoCard({
                       formData.append("id", photo.id);
                       formData.append("url", photo.url);
 
-                      const response = await fetch("/api/photos", {
+                      const response = await fetch(getApiUrl("api/photos"), {
                         method: "DELETE",
                         body: formData,
                       });
@@ -587,7 +588,7 @@ function PhotoCard({
               formData.append("id", photo.id);
               formData.append("isFavorite", checked ? "true" : "false");
 
-              const response = await fetch("/api/photos", {
+              const response = await fetch(getApiUrl("api/photos"), {
                 method: "PUT",
                 body: formData,
               });

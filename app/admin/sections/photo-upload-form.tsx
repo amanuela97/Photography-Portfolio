@@ -17,6 +17,7 @@ import { FormShell } from "../components/form-shell";
 import { MediaDropzone } from "../components/media-dropzone";
 import toast from "react-hot-toast";
 import type { EventType } from "@/utils/types";
+import { getApiUrl } from "@/utils/api-url";
 
 const EVENT_TYPES: EventType[] = [
   "Wedding",
@@ -80,7 +81,7 @@ export function PhotoUploadForm({ favoriteCount }: PhotoUploadFormProps) {
               throw new Error("Image file is required.");
             }
 
-            const response = await fetch("/api/photos", {
+            const response = await fetch(getApiUrl("api/photos"), {
               method: "POST",
               body: formData,
             });

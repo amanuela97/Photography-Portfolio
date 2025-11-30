@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import type { GalleryDocument } from "@/utils/types";
 import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
 import { appendCacheBuster } from "@/utils/cache-buster";
+import { getApiUrl } from "@/utils/api-url";
 
 interface GalleryEditFormProps {
   gallery: GalleryDocument;
@@ -100,7 +101,7 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
         formData.append("isFeatured", "on");
       }
 
-      const response = await fetch("/api/galleries", {
+      const response = await fetch(getApiUrl("api/galleries"), {
         method: "PUT",
         body: formData,
       });
@@ -185,7 +186,7 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
               setImagesProgress(30);
               setVideoProgress(30);
 
-              const response = await fetch("/api/galleries", {
+              const response = await fetch(getApiUrl("api/galleries"), {
                 method: "PUT",
                 body: formData,
               });

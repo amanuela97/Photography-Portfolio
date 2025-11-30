@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Edit2, Check, X, Play } from "lucide-react";
 import toast from "react-hot-toast";
 import type { FilmDocument } from "@/utils/types";
+import { getApiUrl } from "@/utils/api-url";
 
 interface FilmListProps {
   films: FilmDocument[];
@@ -91,7 +92,7 @@ function FilmCard({ film, onDelete }: FilmCardProps) {
       formData.append("id", film.id);
       formData.append("title", title.trim());
 
-      const response = await fetch("/api/films", {
+      const response = await fetch(getApiUrl("api/films"), {
         method: "PUT",
         body: formData,
       });
@@ -132,7 +133,7 @@ function FilmCard({ film, onDelete }: FilmCardProps) {
       formData.append("id", film.id);
       formData.append("url", film.url);
 
-      const response = await fetch("/api/films", {
+      const response = await fetch(getApiUrl("api/films"), {
         method: "DELETE",
         body: formData,
       });

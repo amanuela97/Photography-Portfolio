@@ -13,6 +13,7 @@ import type { AboutDocument, GearItem, ProcessStep } from "@/utils/types";
 import { MediaDropzone } from "../components/media-dropzone";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Upload, CheckCircle2 } from "lucide-react";
+import { getApiUrl } from "@/utils/api-url";
 
 interface AboutFormProps {
   about?: AboutDocument;
@@ -207,7 +208,7 @@ export function AboutForm({ about }: AboutFormProps) {
             }
 
             setLandscapeProgress(50);
-            const response = await fetch("/api/about", {
+            const response = await fetch(getApiUrl("api/about"), {
               method: "POST",
               body: formData,
             });
