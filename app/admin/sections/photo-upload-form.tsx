@@ -31,11 +31,19 @@ const EVENT_TYPES: EventType[] = [
   "Other",
 ];
 
-export function PhotoUploadForm() {
+const MAX_FAVORITES = 6;
+
+interface PhotoUploadFormProps {
+  favoriteCount: number;
+}
+
+export function PhotoUploadForm({ favoriteCount }: PhotoUploadFormProps) {
   const router = useRouter();
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [dropzoneKey, setDropzoneKey] = useState(0);
+  
+  const canAddFavorite = favoriteCount < MAX_FAVORITES;
 
   return (
     <FormShell
@@ -141,10 +149,12 @@ export function PhotoUploadForm() {
             disabled={isUploading}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Checkbox id="isFavorite" name="isFavorite" />
-          <Label htmlFor="isFavorite">Mark as favorite (max 6)</Label>
-        </div>
+        {canAddFavorite && (
+          <div className="flex items-center gap-2">
+            <Checkbox id="isFavorite" name="isFavorite" />
+            <Label htmlFor="isFavorite">Mark as favorite (max 6)</Label>
+          </div>
+        )}
       </form>
     </FormShell>
   );

@@ -4,9 +4,10 @@ import { PhotoGrid } from "./photo-grid";
 
 export default async function PhotosManager() {
   const photos = await getPhotos({ fresh: true });
+  const favoriteCount = photos.filter((p) => p.isFavorite).length;
   return (
     <div className="space-y-8">
-      <PhotoUploadForm />
+      <PhotoUploadForm favoriteCount={favoriteCount} />
       <PhotoGrid photos={photos} />
     </div>
   );

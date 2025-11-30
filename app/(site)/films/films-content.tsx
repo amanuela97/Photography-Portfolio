@@ -7,11 +7,12 @@ import type { FilmDocument } from "@/utils/types";
 
 interface FilmsContentProps {
   initialFilms: FilmDocument[];
+  coverImageUrl?: string | null;
 }
 
 const FILMS_PER_PAGE = 4;
 
-export function FilmsContent({ initialFilms }: FilmsContentProps) {
+export function FilmsContent({ initialFilms, coverImageUrl }: FilmsContentProps) {
   const [allFilms] = useState<FilmDocument[]>(initialFilms);
   const [displayedFilms, setDisplayedFilms] = useState<FilmDocument[]>(() =>
     initialFilms.slice(0, FILMS_PER_PAGE)
@@ -75,7 +76,7 @@ export function FilmsContent({ initialFilms }: FilmsContentProps) {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <FilmsHero />
+      <FilmsHero coverImageUrl={coverImageUrl} />
 
       {/* Films Grid Section */}
       <section className="bg-ivory py-16 md:py-24">

@@ -10,7 +10,7 @@ import {
   deletePhoto,
   getPhotos,
 } from "@/utils/data-access/photos";
-import type { EventType } from "@/utils/types";
+import type { EventType, CoverPageType } from "@/utils/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -101,6 +101,8 @@ export async function POST(request: NextRequest) {
     const eventType = (formData.get("eventType")?.toString() ??
       "Other") as EventType;
     const isFavorite = formData.get("isFavorite")?.toString() === "on";
+    const isCoverFor = (formData.get("isCoverFor")?.toString() ??
+      "NONE") as CoverPageType;
 
     if (!imageFile || imageFile.size === 0) {
       return NextResponse.json(
@@ -149,14 +151,20 @@ export async function POST(request: NextRequest) {
       url,
       eventType,
       isFavorite,
+      isCoverFor,
     });
 
     revalidatePath("/admin");
     revalidatePath("/photos");
     revalidatePath("/");
     revalidatePath("/about");
+    revalidatePath("/galleries");
+    revalidatePath("/films");
+    revalidatePath("/testimonials");
+    revalidatePath("/contact");
     revalidateTag(PHOTOS_TAG, "default");
     revalidateTag(FAVORITE_PHOTOS_TAG, "default");
+    revalidateTag("cover-photos", "default");
 
     return NextResponse.json({
       success: true,
@@ -178,6 +186,7 @@ export async function PUT(request: NextRequest) {
     const isFavorite = formData.get("isFavorite")?.toString() === "true";
     const title = formData.get("title")?.toString();
     const eventType = formData.get("eventType")?.toString();
+    const isCoverFor = formData.get("isCoverFor")?.toString();
 
     if (!id) {
       return NextResponse.json({ error: "Photo ID missing." }, { status: 400 });
@@ -187,6 +196,7 @@ export async function PUT(request: NextRequest) {
       isFavorite?: boolean;
       title?: string;
       eventType?: EventType;
+      isCoverFor?: CoverPageType;
     } = {};
 
     // Handle favorite update
@@ -226,13 +236,23 @@ export async function PUT(request: NextRequest) {
       updateData.eventType = eventType as EventType;
     }
 
+    // Handle isCoverFor update
+    if (isCoverFor !== null && isCoverFor !== undefined) {
+      updateData.isCoverFor = isCoverFor as CoverPageType;
+    }
+
     await updatePhoto(id, updateData);
     revalidatePath("/admin");
     revalidatePath("/photos");
     revalidatePath("/");
     revalidatePath("/about");
+    revalidatePath("/galleries");
+    revalidatePath("/films");
+    revalidatePath("/testimonials");
+    revalidatePath("/contact");
     revalidateTag(PHOTOS_TAG, "default");
     revalidateTag(FAVORITE_PHOTOS_TAG, "default");
+    revalidateTag("cover-photos", "default");
 
     return NextResponse.json({
       success: true,
@@ -274,8 +294,13 @@ export async function DELETE(request: NextRequest) {
     revalidatePath("/photos");
     revalidatePath("/");
     revalidatePath("/about");
+    revalidatePath("/galleries");
+    revalidatePath("/films");
+    revalidatePath("/testimonials");
+    revalidatePath("/contact");
     revalidateTag(PHOTOS_TAG, "default");
     revalidateTag(FAVORITE_PHOTOS_TAG, "default");
+    revalidateTag("cover-photos", "default");
 
     return NextResponse.json({
       success: true,

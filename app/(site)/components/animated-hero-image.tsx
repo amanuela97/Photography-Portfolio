@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { WARM_BLUR_DATA_URL } from "@/utils/image-placeholders";
 import { isSignedUrl } from "@/utils/cache-buster";
 
@@ -22,19 +22,24 @@ export function AnimatedHeroImage({
 }: AnimatedHeroImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const prevSrcRef = useRef<string>(src);
+
+  // Reset state when src changes (using separate effect to avoid linting error)
+  useEffect(() => {
+    if (prevSrcRef.current !== src) {
+      prevSrcRef.current = src;
+      // Use setTimeout to defer state updates
+      const timeoutId = setTimeout(() => {
+        setIsLoaded(false);
+        setIsVisible(false);
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [src]);
 
   useEffect(() => {
     let isCancelled = false;
 
-    const resetState = () => {
-      if (isCancelled) {
-        return;
-      }
-      setIsLoaded(false);
-      setIsVisible(false);
-    };
-
-    const raf = requestAnimationFrame(resetState);
     const timer = setTimeout(() => {
       if (!isCancelled) {
         setIsVisible(true);
@@ -43,7 +48,6 @@ export function AnimatedHeroImage({
 
     return () => {
       isCancelled = true;
-      cancelAnimationFrame(raf);
       clearTimeout(timer);
     };
   }, [src]);
@@ -51,6 +55,7 @@ export function AnimatedHeroImage({
   return (
     <div className={`absolute inset-0 ${className}`}>
       <Image
+        key={src}
         src={src}
         alt={alt}
         fill
@@ -64,6 +69,10 @@ export function AnimatedHeroImage({
         blurDataURL={blurDataURL ?? WARM_BLUR_DATA_URL}
         unoptimized={isSignedUrl(src)}
         onLoad={() => setIsLoaded(true)}
+        onError={() => {
+          // Still show image even on error to prevent blank space
+          setIsLoaded(true);
+        }}
       />
     </div>
   );

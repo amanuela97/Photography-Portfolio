@@ -2,7 +2,7 @@
 
 import { unstable_cache } from "next/cache";
 import { adminDb, adminStorage } from "@/utils/firebase/admin";
-import type { PhotoDocument } from "@/utils/types";
+import type { PhotoDocument, CoverPageType } from "@/utils/types";
 import { nowISOString, toISOString } from "./helpers";
 
 const COLLECTION = "photos";
@@ -28,9 +28,7 @@ async function fetchPhotosFromDb(): Promise<PhotoDocument[]> {
   }
 }
 
-async function fetchFavoritePhotosFromDb(
-  limit = 3
-): Promise<PhotoDocument[]> {
+async function fetchFavoritePhotosFromDb(limit = 3): Promise<PhotoDocument[]> {
   try {
     const snap = await adminDb
       .collection(COLLECTION)
@@ -66,6 +64,34 @@ async function fetchFavoritePhotosFromDb(
   }
 }
 
+async function fetchCoverPhotoFromDb(
+  pageType: CoverPageType
+): Promise<PhotoDocument | null> {
+  if (pageType === "NONE") {
+    return null;
+  }
+
+  try {
+    const snap = await adminDb
+      .collection(COLLECTION)
+      .where("isCoverFor", "==", pageType)
+      .limit(1)
+      .get();
+
+    if (snap.empty) {
+      return null;
+    }
+
+    return serializePhoto(
+      snap.docs[0].id,
+      snap.docs[0].data() as PhotoDocument
+    );
+  } catch (error) {
+    console.error("Error fetching cover photo:", error);
+    return null;
+  }
+}
+
 const getPhotosCached = unstable_cache(
   fetchPhotosFromDb,
   ["data-access", "photos", "list"],
@@ -76,6 +102,12 @@ const getFavoritePhotosCached = unstable_cache(
   fetchFavoritePhotosFromDb,
   ["data-access", "photos", "favorites"],
   { revalidate: CACHE_TTL, tags: ["favorite-photos"] }
+);
+
+const getCoverPhotoCached = unstable_cache(
+  fetchCoverPhotoFromDb,
+  ["data-access", "photos", "cover"],
+  { revalidate: CACHE_TTL, tags: ["cover-photos"] }
 );
 
 export async function getPhotos(
@@ -93,13 +125,24 @@ export async function getFavoritePhotos(
     : getFavoritePhotosCached(limit);
 }
 
+export async function getCoverPhoto(
+  pageType: CoverPageType,
+  options?: FetchOptions
+): Promise<PhotoDocument | null> {
+  return options?.fresh
+    ? fetchCoverPhotoFromDb(pageType)
+    : getCoverPhotoCached(pageType);
+}
+
 export async function createPhoto(
   payload: Omit<PhotoDocument, "id" | "createdAt" | "updatedAt">
 ): Promise<void> {
   await enforceFavoriteLimit(payload.isFavorite);
+  await enforceCoverPhotoLimit(payload.isCoverFor ?? "NONE", undefined);
   const now = nowISOString();
   await adminDb.collection(COLLECTION).add({
     ...payload,
+    isCoverFor: payload.isCoverFor ?? "NONE",
     createdAt: now,
     updatedAt: now,
   });
@@ -111,6 +154,9 @@ export async function updatePhoto(
 ): Promise<void> {
   if (payload.isFavorite !== undefined) {
     await enforceFavoriteLimit(payload.isFavorite, id);
+  }
+  if (payload.isCoverFor !== undefined) {
+    await enforceCoverPhotoLimit(payload.isCoverFor, id);
   }
   const now = nowISOString();
   await adminDb
@@ -164,10 +210,34 @@ async function enforceFavoriteLimit(
   }
 }
 
+async function enforceCoverPhotoLimit(
+  pageType: CoverPageType,
+  currentId?: string
+): Promise<void> {
+  // NONE doesn't need enforcement
+  if (pageType === "NONE") return;
+
+  // Check if another photo is already set as cover for this page type
+  const snap = await adminDb
+    .collection(COLLECTION)
+    .where("isCoverFor", "==", pageType)
+    .get();
+
+  const existing = snap.docs.find((doc) => doc.id !== currentId);
+  if (existing) {
+    // Clear the existing cover photo for this page type
+    await adminDb
+      .collection(COLLECTION)
+      .doc(existing.id)
+      .set({ isCoverFor: "NONE" }, { merge: true });
+  }
+}
+
 function serializePhoto(id: string, data: PhotoDocument): PhotoDocument {
   return {
     ...data,
     id,
+    isCoverFor: data.isCoverFor ?? "NONE",
     createdAt: toISOString(data.createdAt) ?? undefined,
     updatedAt: toISOString(data.updatedAt) ?? undefined,
   };

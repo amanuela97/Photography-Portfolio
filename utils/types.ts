@@ -92,12 +92,21 @@ export interface GalleryDocument {
   updatedAt?: string;
 }
 
+export type CoverPageType =
+  | "PHOTOS"
+  | "GALLERIES"
+  | "FILMS"
+  | "TESTIMONIALS"
+  | "CONTACT"
+  | "NONE";
+
 export interface PhotoDocument {
   id: string;
   title: string;
   url: string;
   eventType: EventType;
   isFavorite: boolean;
+  isCoverFor: CoverPageType;
   createdAt?: string;
   updatedAt?: string;
 }

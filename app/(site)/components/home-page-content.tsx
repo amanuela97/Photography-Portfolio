@@ -11,6 +11,8 @@ import type {
   GalleryDocument,
   PhotoDocument,
   TestimonialDocument,
+  EventType,
+  CoverPageType,
 } from "@/utils/types";
 import { useSiteProfile } from "./site-profile-context";
 import { appendCacheBuster } from "@/utils/cache-buster";
@@ -29,17 +31,19 @@ export function HomePageContent({
 }: HomePageContentProps) {
   const profile = useSiteProfile();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const heroSlides = favoritePhotos.length
-    ? favoritePhotos.slice(0, 3)
-    : [
-        {
-          id: "fallback-hero",
-          url: "/profile-landscape.JPG",
-          title: "Portfolio highlight",
-          eventType: "Wedding",
-          isFavorite: true,
-        } as PhotoDocument,
-      ];
+  const heroSlides =
+    favoritePhotos.length > 0
+      ? favoritePhotos
+      : [
+          {
+            id: "fallback-hero",
+            url: "/profile-landscape.JPG",
+            title: "Portfolio highlight",
+            eventType: "Wedding" as EventType,
+            isFavorite: true,
+            isCoverFor: "NONE" as CoverPageType,
+          } as PhotoDocument,
+        ];
 
   useEffect(() => {
     if (heroSlides.length < 2) {

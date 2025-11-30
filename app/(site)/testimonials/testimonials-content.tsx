@@ -8,10 +8,12 @@ import { WARM_BLUR_DATA_URL } from "@/utils/image-placeholders";
 
 interface TestimonialsContentProps {
   approvedTestimonials: TestimonialDocument[];
+  coverImageUrl?: string | null;
 }
 
 export function TestimonialsContent({
   approvedTestimonials,
+  coverImageUrl,
 }: TestimonialsContentProps) {
   return (
     <div className="min-h-screen bg-ivory">
@@ -19,7 +21,7 @@ export function TestimonialsContent({
       <section className="relative h-screen w-full overflow-hidden pt-[10vh]">
         <div className="absolute inset-0 bg-cover bg-center">
           <AnimatedHeroImage
-            src="/testimonials-hero.JPG"
+            src={coverImageUrl || "/testimonials-hero.JPG"}
             alt="Client testimonials hero"
             priority
             blurDataURL={WARM_BLUR_DATA_URL}

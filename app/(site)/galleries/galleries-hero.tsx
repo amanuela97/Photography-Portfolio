@@ -1,11 +1,23 @@
 "use client";
 
+import { AnimatedHeroImage } from "../components/animated-hero-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 
-export function GalleriesHero() {
+interface GalleriesHeroProps {
+  coverImageUrl?: string | null;
+}
+
+export function GalleriesHero({ coverImageUrl }: GalleriesHeroProps) {
+  const heroImageUrl = coverImageUrl || "/galleries-hero.JPG";
+
   return (
     <section className="relative h-screen w-full overflow-hidden pt-[10vh]">
       <div className="absolute inset-0 bg-cover bg-center">
+        <AnimatedHeroImage
+          src={heroImageUrl}
+          alt="Galleries hero"
+          priority
+        />
         <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/40" />
       </div>
 

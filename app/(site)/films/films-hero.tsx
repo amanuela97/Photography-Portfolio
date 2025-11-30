@@ -3,10 +3,21 @@
 import { AnimatedHeroImage } from "../components/animated-hero-image";
 import { ScrollTextAnimation } from "../components/scroll-text-animation";
 
-export function FilmsHero() {
+interface FilmsHeroProps {
+  coverImageUrl?: string | null;
+}
+
+export function FilmsHero({ coverImageUrl }: FilmsHeroProps) {
+  const heroImageUrl = coverImageUrl || "/films-hero.JPG";
+
   return (
     <section className="relative h-screen w-full overflow-hidden pt-[10vh]">
       <div className="absolute inset-0 bg-cover bg-center">
+        <AnimatedHeroImage
+          src={heroImageUrl}
+          alt="Films hero"
+          priority
+        />
         <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/40" />
       </div>
 

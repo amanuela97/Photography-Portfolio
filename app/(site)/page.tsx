@@ -15,7 +15,7 @@ export default async function HomePage() {
   try {
     [favoritePhotos, featuredGalleries, featuredTestimonials] =
       await Promise.all([
-        getFavoritePhotos(3),
+        getFavoritePhotos(6),
         getFeaturedGalleries(4),
         getFeaturedTestimonials(4),
       ]);

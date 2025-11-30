@@ -21,8 +21,10 @@ export function GalleryContent({ gallery }: GalleryContentProps) {
     <main className="min-h-screen bg-ivory">
       {/* Hero Section with Cover Image */}
       <section className="relative h-[80vh] w-full overflow-hidden pt-[10vh]">
-        <AnimatedHeroImage src={coverImage} alt={gallery.title} priority />
-        <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/40" />
+        <div className="absolute inset-0 bg-cover bg-center">
+          <AnimatedHeroImage src={coverImage} alt={gallery.title} priority />
+          <div className="absolute inset-0 bg-linear-to-b from-black/60 to-black/40" />
+        </div>
 
         <div className="relative h-full flex flex-col items-center justify-center text-center px-6 text-white mt-20">
           <ScrollTextAnimation>

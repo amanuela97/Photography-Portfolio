@@ -11,6 +11,13 @@ import toast from "react-hot-toast";
 import { MediaDropzone } from "../components/media-dropzone";
 import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
 
+interface GalleryCreateResponse {
+  success?: boolean;
+  message?: string;
+  slug?: string;
+  error?: string;
+}
+
 export function GalleryCreateForm() {
   const [isCreating, setIsCreating] = useState(false);
   const [coverFiles, setCoverFiles] = useState<File[]>([]);
@@ -92,16 +99,49 @@ export function GalleryCreateForm() {
               body: formData,
             });
 
-            const result = await response.json();
+            // Check content-type before parsing JSON
+            const contentType = response.headers.get("content-type");
+            let result: GalleryCreateResponse;
+
+            if (contentType?.includes("application/json")) {
+              try {
+                result = (await response.json()) as GalleryCreateResponse;
+              } catch (jsonError) {
+                // If JSON parsing fails, read as text for better error message
+                const text = await response.text();
+                console.error(
+                  "Failed to parse JSON response:",
+                  text,
+                  jsonError
+                );
+                throw new Error(
+                  response.status >= 500
+                    ? "Server error occurred. Please try again later."
+                    : "Failed to create gallery. Please check your input and try again."
+                );
+              }
+            } else {
+              // Non-JSON response (likely HTML error page)
+              const text = await response.text();
+              console.error(
+                "Non-JSON response received:",
+                text.substring(0, 200)
+              );
+              throw new Error(
+                response.status >= 500
+                  ? "Server error occurred. Please try again later."
+                  : "Failed to create gallery. Please check your input and try again."
+              );
+            }
 
             if (!response.ok) {
               if (response.status === 409) {
                 setSlugError(
-                  result.error ||
+                  result?.error ||
                     "That slug already exists. Please choose another."
                 );
               }
-              throw new Error(result.error || "Failed to create gallery");
+              throw new Error(result?.error || "Failed to create gallery");
             }
 
             setCoverProgress(100);

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import toast from "react-hot-toast";
-import type { PhotoDocument, EventType } from "@/utils/types";
+import type { PhotoDocument, EventType, CoverPageType } from "@/utils/types";
 
 const EVENT_TYPES: EventType[] = [
   "Wedding",
@@ -29,6 +29,15 @@ const EVENT_TYPES: EventType[] = [
   "Engagements",
   "Graduation",
   "Other",
+];
+
+const COVER_PAGE_TYPES: CoverPageType[] = [
+  "NONE",
+  "PHOTOS",
+  "GALLERIES",
+  "FILMS",
+  "TESTIMONIALS",
+  "CONTACT",
 ];
 
 interface PhotoGridProps {
@@ -128,13 +137,19 @@ function PhotoCard({
   const [isEditingEventType, setIsEditingEventType] = useState(false);
   const [eventType, setEventType] = useState<EventType>(photo.eventType);
   const [pendingEventTypeUpdate, setPendingEventTypeUpdate] = useState(false);
+  const [isEditingCoverFor, setIsEditingCoverFor] = useState(false);
+  const [coverFor, setCoverFor] = useState<CoverPageType>(
+    photo.isCoverFor ?? "NONE"
+  );
+  const [pendingCoverForUpdate, setPendingCoverForUpdate] = useState(false);
 
   // Update local state when photo prop changes
   useEffect(() => {
     setIsFavorite(photo.isFavorite);
     setTitle(photo.title);
     setEventType(photo.eventType);
-  }, [photo.isFavorite, photo.title, photo.eventType]);
+    setCoverFor(photo.isCoverFor ?? "NONE");
+  }, [photo.isFavorite, photo.title, photo.eventType, photo.isCoverFor]);
 
   const handleTitleSave = async () => {
     if (title.trim() === photo.title.trim()) {
@@ -218,6 +233,48 @@ function PhotoCard({
       setIsEditingEventType(false);
     } finally {
       setPendingEventTypeUpdate(false);
+    }
+  };
+
+  const handleCoverForSave = async () => {
+    if (coverFor === (photo.isCoverFor ?? "NONE")) {
+      setIsEditingCoverFor(false);
+      return;
+    }
+
+    try {
+      setPendingCoverForUpdate(true);
+      const formData = new FormData();
+      formData.append("id", photo.id);
+      formData.append("isCoverFor", coverFor);
+
+      const response = await fetch("/api/photos", {
+        method: "PUT",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update cover photo");
+      }
+
+      toast.success("Cover photo updated successfully!", { duration: 3000 });
+      setIsEditingCoverFor(false);
+      // Refresh to sync with server
+      router.refresh();
+    } catch (error) {
+      console.error("Cover photo update error:", error);
+      toast.error(
+        (error as Error).message || "Unable to update cover photo.",
+        {
+          duration: 4000,
+        }
+      );
+      setCoverFor(photo.isCoverFor ?? "NONE");
+      setIsEditingCoverFor(false);
+    } finally {
+      setPendingCoverForUpdate(false);
     }
   };
 
@@ -433,6 +490,68 @@ function PhotoCard({
                 size="icon"
                 className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => setIsEditingEventType(true)}
+              >
+                <Edit2 className="h-4 w-4 text-brand-muted" />
+              </Button>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {isEditingCoverFor ? (
+            <div className="flex items-center gap-2 flex-1">
+              <Select
+                value={coverFor}
+                onValueChange={(value) => setCoverFor(value as CoverPageType)}
+                disabled={pendingCoverForUpdate}
+              >
+                <SelectTrigger className="flex-1 h-8 bg-brand-background text-brand-text text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-brand-background text-brand-text">
+                  {COVER_PAGE_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type === "NONE" ? "Not a cover photo" : `Cover for ${type}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={pendingCoverForUpdate}
+                onClick={handleCoverForSave}
+              >
+                <Check className="h-4 w-4 text-green-600" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                disabled={pendingCoverForUpdate}
+                onClick={() => {
+                  setCoverFor(photo.isCoverFor ?? "NONE");
+                  setIsEditingCoverFor(false);
+                }}
+              >
+                <X className="h-4 w-4 text-brand-muted" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-brand-muted flex-1">
+                {coverFor === "NONE"
+                  ? "Not a cover photo"
+                  : `Cover for ${coverFor}`}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => setIsEditingCoverFor(true)}
               >
                 <Edit2 className="h-4 w-4 text-brand-muted" />
               </Button>
