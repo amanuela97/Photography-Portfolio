@@ -50,7 +50,7 @@ export function GalleryCreateForm() {
           type="submit"
           form="gallery-create-form"
           disabled={isCreating}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          className="ml-auto bg-brand-primary text-brand-contrast cursor-pointer"
         >
           {isCreating ? "Creating..." : "Create gallery"}
         </Button>

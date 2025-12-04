@@ -9,7 +9,7 @@ export default async function GalleriesManager() {
         <Link href="/admin/gallery">
           <Button
             variant="outline"
-            className="bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+            className=" text-brand-contrast cursor-pointer"
           >
             Manage Galleries
           </Button>

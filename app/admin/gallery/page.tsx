@@ -16,7 +16,7 @@ export default async function GalleryPage() {
             <Link href="/admin">
               <Button
                 variant="outline"
-                className="text-brand-text flex items-center gap-2 cursor-pointer hover:bg-brand-accent hover:text-brand-primary"
+                className="text-brand-text flex items-center gap-2 cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Admin

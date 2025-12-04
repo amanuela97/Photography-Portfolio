@@ -207,7 +207,7 @@ function TestimonialCard({
             <Button
               type="submit"
               disabled={pendingUpdate}
-              className="bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+              className="bg-brand-primary text-brand-contrast cursor-pointer"
             >
               {pendingUpdate ? "Saving..." : "Save changes"}
             </Button>
@@ -220,7 +220,7 @@ function TestimonialCard({
                 formData.append("id", testimonial.id);
                 startDelete(() => deleteAction(formData));
               }}
-              className="flex items-center gap-2 bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+              className="flex items-center gap-2 bg-brand-primary text-brand-contrast cursor-pointer"
             >
               <Trash2 className="h-4 w-4" />
               {pendingDelete ? "Deleting..." : "Delete"}

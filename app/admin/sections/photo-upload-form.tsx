@@ -43,7 +43,7 @@ export function PhotoUploadForm({ favoriteCount }: PhotoUploadFormProps) {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [dropzoneKey, setDropzoneKey] = useState(0);
-  
+
   const canAddFavorite = favoriteCount < MAX_FAVORITES;
 
   return (
@@ -55,7 +55,7 @@ export function PhotoUploadForm({ favoriteCount }: PhotoUploadFormProps) {
           type="submit"
           form="photo-upload-form"
           disabled={isUploading}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          className="ml-auto bg-brand-primary text-brand-contrast cursor-pointer"
         >
           {isUploading ? "Uploading..." : "Upload photo"}
         </Button>

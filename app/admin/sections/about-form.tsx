@@ -14,6 +14,7 @@ import { MediaDropzone } from "../components/media-dropzone";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Upload, CheckCircle2 } from "lucide-react";
 import { getApiUrl } from "@/utils/api-url";
+import { uploadFileToStorageClient } from "@/utils/firebase/client-upload";
 
 interface AboutFormProps {
   about?: AboutDocument;
@@ -170,7 +171,7 @@ export function AboutForm({ about }: AboutFormProps) {
           type="submit"
           form="about-form"
           disabled={isSaving}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-auto bg-brand-primary text-brand-contrast cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? "Saving..." : "Save content"}
         </Button>
@@ -274,6 +275,50 @@ export function AboutForm({ about }: AboutFormProps) {
               accept={{ "image/*": [] }}
               progress={landscapeProgress}
               onFilesChange={setLandscapeFiles}
+              onExistingFileCrop={async (croppedFile, index) => {
+                try {
+                  toast.loading("Uploading cropped image...", {
+                    id: "landscape-crop-upload",
+                  });
+                  setLandscapeProgress(10);
+
+                  // Upload the cropped file to Firebase Storage
+                  const ext = croppedFile.name.match(/\.[^/.]+$/)?.at(0) || ".webp";
+                  const storagePath = `about/landscape${ext}`;
+                  
+                  const croppedUrl = await uploadFileToStorageClient(
+                    croppedFile,
+                    storagePath,
+                    (progress) => {
+                      setLandscapeProgress(10 + progress * 0.9); // 10-100%
+                    }
+                  );
+
+                  // Update the landscape image URL
+                  setCurrentLandscapeImage(
+                    appendCacheBuster(croppedUrl, new Date().toISOString())
+                  );
+                  setLandscapeProgress(100);
+
+                  toast.success("Landscape image updated successfully!", {
+                    id: "landscape-crop-upload",
+                    duration: 3000,
+                  });
+
+                  setTimeout(() => {
+                    setLandscapeProgress(0);
+                  }, 800);
+                } catch (error) {
+                  console.error("Error uploading cropped landscape:", error);
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to upload cropped image",
+                    { id: "landscape-crop-upload", duration: 4000 }
+                  );
+                  setLandscapeProgress(0);
+                }
+              }}
               existingFiles={
                 currentLandscapeImage ? [currentLandscapeImage] : undefined
               }

@@ -16,6 +16,7 @@ import type { GalleryDocument } from "@/utils/types";
 import { slugify, SLUG_INPUT_PATTERN } from "@/utils/slug";
 import { appendCacheBuster } from "@/utils/cache-buster";
 import { getApiUrl } from "@/utils/api-url";
+import { uploadFileToStorageClient } from "@/utils/firebase/client-upload";
 
 interface GalleryEditFormProps {
   gallery: GalleryDocument;
@@ -341,6 +342,52 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                     : undefined
                 }
                 onRemoveExisting={() => setExistingCover("")}
+                onExistingFileCrop={async (croppedFile, index) => {
+                  try {
+                    toast.loading("Uploading cropped image...", {
+                      id: "crop-upload",
+                    });
+                    setCoverProgress(10);
+
+                    // Upload the cropped file to Firebase Storage
+                    const ext = croppedFile.name.match(/\.[^/.]+$/)?.at(0) || ".webp";
+                    const storagePath = `galleries/${gallery.slug}/cover${ext}`;
+                    
+                    const croppedUrl = await uploadFileToStorageClient(
+                      croppedFile,
+                      storagePath,
+                      (progress) => {
+                        setCoverProgress(10 + progress * 0.9); // 10-100%
+                      }
+                    );
+
+                    // Update the existing cover URL (this will update the preview)
+                    setExistingCover(croppedUrl);
+                    setCoverProgress(100);
+
+                    toast.success("Cover image updated successfully!", {
+                      id: "crop-upload",
+                      duration: 3000,
+                    });
+
+                    setTimeout(() => {
+                      setCoverProgress(0);
+                    }, 800);
+                  } catch (error) {
+                    console.error("Error uploading cropped image:", error);
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : "Failed to upload cropped image",
+                      { id: "crop-upload", duration: 4000 }
+                    );
+                    setCoverProgress(0);
+                  }
+                }}
+                onExistingFilePreviewUpdate={(previewUrl) => {
+                  // Preview is already updated in MediaDropzone component
+                  // This callback is optional and can be used for additional logic if needed
+                }}
                 disabled={isSaving}
               />
             </div>
@@ -451,7 +498,7 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary transition-all shadow-subtle hover:shadow-soft px-6 sm:px-8 py-5 sm:py-6 text-base font-semibold w-full sm:w-auto"
+                className="bg-brand-primary text-brand-contrast cursor-pointer transition-all shadow-subtle hover:shadow-soft px-6 sm:px-8 py-5 sm:py-6 text-base font-semibold w-full sm:w-auto"
               >
                 {isSaving ? (
                   <>

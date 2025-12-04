@@ -25,7 +25,7 @@ export default async function GallerySlugPage({ params }: GalleryPageProps) {
           <Link href="/admin/gallery">
             <Button
               variant="outline"
-              className="text-brand-text flex items-center gap-2 cursor-pointer hover:bg-brand-accent hover:text-brand-primary mb-4 -ml-3 transition-all"
+              className="text-brand-text flex items-center gap-2 cursor-pointer mb-4 -ml-3 transition-all"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Galleries

@@ -18,6 +18,7 @@ import type { ProfileDocument, SocialLink, SocialType } from "@/utils/types";
 import { MediaDropzone } from "../components/media-dropzone";
 import { appendCacheBuster } from "@/utils/cache-buster";
 import { getApiUrl } from "@/utils/api-url";
+import { uploadFileToStorageClient } from "@/utils/firebase/client-upload";
 
 const SOCIAL_OPTIONS: SocialType[] = ["Instagram", "Facebook", "Twitter"];
 
@@ -119,7 +120,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           type="submit"
           form="profile-form"
           disabled={isSubmitting}
-          className="ml-auto cursor-pointer bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary disabled:opacity-50"
+          className="ml-auto cursor-pointer bg-brand-primary text-brand-contrast disabled:opacity-50"
         >
           {isSubmitting ? "Saving..." : "Save changes"}
         </Button>
@@ -207,6 +208,39 @@ export function ProfileForm({ profile }: ProfileFormProps) {
             onRemoveExisting={() => {
               setPortraitPreview("");
               setPortraitFiles([]);
+            }}
+            onExistingFileCrop={async (croppedFile, index) => {
+              try {
+                toast.loading("Uploading cropped image...", {
+                  id: "portrait-crop-upload",
+                });
+
+                // Upload the cropped file to Firebase Storage
+                const ext = croppedFile.name.match(/\.[^/.]+$/)?.at(0) || ".webp";
+                const storagePath = `profile/portrait${ext}`;
+                
+                const croppedUrl = await uploadFileToStorageClient(
+                  croppedFile,
+                  storagePath
+                );
+
+                // Update the portrait preview URL
+                setPortraitPreview(croppedUrl);
+                setPortraitVersion(Date.now().toString());
+
+                toast.success("Portrait image updated successfully!", {
+                  id: "portrait-crop-upload",
+                  duration: 3000,
+                });
+              } catch (error) {
+                console.error("Error uploading cropped portrait:", error);
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to upload cropped image",
+                  { id: "portrait-crop-upload", duration: 4000 }
+                );
+              }
             }}
             existingFiles={
               portraitPreview

@@ -275,7 +275,7 @@ function GalleryCard({ gallery }: { gallery: GalleryDocument }) {
               <Button
                 type="submit"
                 disabled={pendingUpdate}
-                className="bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+                className="bg-brand-primary text-brand-contrast cursor-pointer"
               >
                 {pendingUpdate ? "Saving..." : "Save changes"}
               </Button>

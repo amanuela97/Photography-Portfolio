@@ -27,7 +27,7 @@ export function FilmCreateForm() {
           type="submit"
           form="film-create-form"
           disabled={isCreating}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          className="ml-auto bg-brand-primary text-brand-contrast cursor-pointer"
         >
           {isCreating ? "Uploading..." : "Add film"}
         </Button>

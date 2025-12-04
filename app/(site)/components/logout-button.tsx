@@ -30,7 +30,7 @@ export function LogoutButton() {
       type="button"
       onClick={handleLogout}
       disabled={isLoading}
-      className="rounded-full bg-brand-primary text-brand-contrast transition duration-fast ease-in-out hover:bg-brand-accent hover:text-brand-primary cursor-pointer"
+      className="rounded-full bg-brand-primary text-brand-contrast transition duration-fast ease-in-out cursor-pointer"
     >
       {isLoading ? "Signing out..." : "Sign out"}
     </Button>

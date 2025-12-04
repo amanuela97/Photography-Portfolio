@@ -81,7 +81,7 @@ export function TestimonialCreateForm({
           type="submit"
           form="testimonial-create-form"
           disabled={pending}
-          className="ml-auto bg-brand-primary text-brand-contrast hover:bg-brand-accent hover:text-brand-primary"
+          className="ml-auto bg-brand-primary text-brand-contrast cursor-pointer"
         >
           {pending ? "Submitting..." : "Submit Testimonial"}
         </Button>
