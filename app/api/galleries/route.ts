@@ -217,19 +217,16 @@ export async function POST(request: NextRequest) {
       error instanceof Error
         ? error.message
         : typeof error === "string"
-          ? error
-          : "Failed to create gallery";
-    
+        ? error
+        : "Failed to create gallery";
+
     // Log full error details for debugging
     if (error instanceof Error) {
       console.error("Error stack:", error.stack);
       console.error("Error name:", error.name);
     }
-    
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -276,7 +273,17 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const storageSlug = slug || previousSlug || id;
+    // Ensure storageSlug is always a valid slug for Firebase Storage paths
+    // Firebase Storage paths must be valid - can't use raw IDs which may contain invalid characters
+    let storageSlug = slug || previousSlug;
+    if (!storageSlug || !isValidSlug(storageSlug)) {
+      // If no valid slug exists, create one from the ID (sanitized)
+      storageSlug = slugify(id) || `gallery-${id}`.replace(/[^a-z0-9-]/g, "-");
+      // Ensure it's still valid after sanitization
+      if (!isValidSlug(storageSlug)) {
+        storageSlug = `gallery-${Date.now()}`;
+      }
+    }
     const slugChanged =
       Boolean(slug) && Boolean(previousSlug) && slug !== previousSlug;
     const coverFile = getSingleFile(formData, "coverImage");

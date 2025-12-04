@@ -192,7 +192,18 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                 body: formData,
               });
 
-              const result = await response.json();
+              // Check if response is JSON
+              let result;
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                result = await response.json();
+              } else {
+                const text = await response.text();
+                throw new Error(
+                  text ||
+                    `Server error: ${response.status} ${response.statusText}`
+                );
+              }
 
               if (!response.ok) {
                 if (response.status === 409) {
@@ -201,7 +212,17 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                       "That slug already exists. Please choose another."
                   );
                 }
-                throw new Error(result.error || "Failed to update gallery");
+                // Check for Firebase Storage pattern errors
+                const errorMessage = result.error || "Failed to update gallery";
+                if (
+                  errorMessage.includes("pattern") ||
+                  errorMessage.includes("string did not match")
+                ) {
+                  throw new Error(
+                    "Invalid gallery slug or path. Please ensure the slug contains only letters, numbers, and dashes."
+                  );
+                }
+                throw new Error(errorMessage);
               }
 
               setCoverProgress(100);
@@ -342,17 +363,28 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                     : undefined
                 }
                 onRemoveExisting={() => setExistingCover("")}
-                onExistingFileCrop={async (croppedFile, index) => {
+                onExistingFileCrop={async (croppedFile) => {
                   try {
                     toast.loading("Uploading cropped image...", {
                       id: "crop-upload",
                     });
                     setCoverProgress(10);
 
+                    // Ensure we have a valid slug for the storage path
+                    const validSlug = slugify(
+                      gallery.slug || gallery.id || "gallery"
+                    );
+                    if (!validSlug) {
+                      throw new Error(
+                        "Invalid gallery slug. Please save the gallery with a valid slug first."
+                      );
+                    }
+
                     // Upload the cropped file to Firebase Storage
-                    const ext = croppedFile.name.match(/\.[^/.]+$/)?.at(0) || ".webp";
-                    const storagePath = `galleries/${gallery.slug}/cover${ext}`;
-                    
+                    const ext =
+                      croppedFile.name.match(/\.[^/.]+$/)?.at(0) || ".webp";
+                    const storagePath = `galleries/${validSlug}/cover${ext}`;
+
                     const croppedUrl = await uploadFileToStorageClient(
                       croppedFile,
                       storagePath,
@@ -384,7 +416,7 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                     setCoverProgress(0);
                   }
                 }}
-                onExistingFilePreviewUpdate={(previewUrl) => {
+                onExistingFilePreviewUpdate={() => {
                   // Preview is already updated in MediaDropzone component
                   // This callback is optional and can be used for additional logic if needed
                 }}
