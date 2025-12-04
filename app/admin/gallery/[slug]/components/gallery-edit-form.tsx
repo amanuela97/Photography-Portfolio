@@ -170,26 +170,154 @@ export function GalleryEditForm({ gallery }: GalleryEditFormProps) {
                 throw new Error("Slug is required.");
               }
 
-              formData.set("slug", normalizedSlug);
               setSlugError(null);
 
-              if (coverFiles.length > 0 && coverFiles[0]) {
-                formData.set("coverImage", coverFiles[0]);
-              }
-              imageFiles.forEach((file) => {
-                formData.append("galleryImages", file);
-              });
-              if (videoFiles.length > 0 && videoFiles[0]) {
-                formData.set("galleryVideo", videoFiles[0]);
+              // Ensure we have a valid slug for storage paths
+              const validSlug = normalizedSlug || slugify(gallery.slug || gallery.id || "gallery");
+              if (!validSlug) {
+                throw new Error("Invalid gallery slug. Please enter a valid slug.");
               }
 
-              setCoverProgress(30);
-              setImagesProgress(30);
-              setVideoProgress(30);
+              const galleryFolder = `galleries/${validSlug}`;
+              const uploadPromises: Promise<void>[] = [];
+              let coverUrl: string | null = null;
+              const uploadedImageUrls: string[] = [];
+              let videoUrl: string | null = null;
+
+              // Upload cover image directly to Firebase Storage
+              if (coverFiles.length > 0 && coverFiles[0]) {
+                const coverFile = coverFiles[0];
+                const ext = coverFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+                const storagePath = `${galleryFolder}/cover${ext}`;
+
+                uploadPromises.push(
+                  uploadFileToStorageClient(coverFile, storagePath, (progress) => {
+                    setCoverProgress(20 + progress * 0.4); // 20-60%
+                  })
+                    .then((url) => {
+                      coverUrl = url;
+                      setCoverProgress(100);
+                    })
+                    .catch((error) => {
+                      console.error("Cover image upload error:", error);
+                      throw new Error(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to upload cover image. Please check the file size and try again."
+                      );
+                    })
+                );
+              } else {
+                setCoverProgress(100);
+              }
+
+              // Upload gallery images in parallel
+              if (imageFiles.length > 0) {
+                const totalImages = imageFiles.length;
+                imageFiles.forEach((file, index) => {
+                  const ext = file.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+                  const storagePath = `${galleryFolder}/images/${Date.now()}-${index}${ext}`;
+
+                  uploadPromises.push(
+                    uploadFileToStorageClient(file, storagePath, (progress) => {
+                      // Distribute progress across all images
+                      const baseProgress = 20;
+                      const imageProgress = (progress / totalImages) * 0.6; // 20-80%
+                      const currentImageProgress = (index / totalImages) * 0.6;
+                      setImagesProgress(
+                        baseProgress + currentImageProgress + imageProgress
+                      );
+                    })
+                      .then((url) => {
+                        uploadedImageUrls.push(url);
+                        // Update progress when each image completes
+                        const completed = uploadedImageUrls.length;
+                        setImagesProgress(20 + (completed / totalImages) * 80);
+                      })
+                      .catch((error) => {
+                        console.error(`Image ${index + 1} upload error:`, error);
+                        throw new Error(
+                          error instanceof Error
+                            ? error.message
+                            : `Failed to upload image ${
+                                index + 1
+                              }. Please check the file size and try again.`
+                        );
+                      })
+                  );
+                });
+              } else {
+                setImagesProgress(100);
+              }
+
+              // Upload video
+              if (videoFiles.length > 0 && videoFiles[0]) {
+                const videoFile = videoFiles[0];
+                const ext = videoFile.name.match(/\.[^/.]+$/)?.at(0) || ".mp4";
+                const storagePath = `${galleryFolder}/video${ext}`;
+
+                uploadPromises.push(
+                  uploadFileToStorageClient(videoFile, storagePath, (progress) => {
+                    setVideoProgress(20 + progress * 0.8); // 20-100%
+                  })
+                    .then((url) => {
+                      videoUrl = url;
+                      setVideoProgress(100);
+                    })
+                    .catch((error) => {
+                      console.error("Video upload error:", error);
+                      throw new Error(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to upload video. Please check the file size and try again."
+                      );
+                    })
+                );
+              } else {
+                setVideoProgress(100);
+              }
+
+              // Wait for all uploads to complete in parallel
+              await Promise.all(uploadPromises);
+
+              // Now update gallery with URLs only (no files)
+              const updateFormData = new FormData();
+              updateFormData.set("id", gallery.id);
+              updateFormData.set("slug", normalizedSlug);
+              updateFormData.set(
+                "title",
+                formData.get("title")?.toString() ?? ""
+              );
+              updateFormData.set(
+                "description",
+                formData.get("description")?.toString() ?? ""
+              );
+              if (coverUrl) {
+                updateFormData.set("coverImageUrl", coverUrl);
+              }
+              uploadedImageUrls.forEach((url) => {
+                updateFormData.append("galleryImageUrls", url);
+              });
+              if (videoUrl) {
+                updateFormData.set("videoUrl", videoUrl);
+              }
+              updateFormData.set(
+                "existingImages",
+                JSON.stringify(retainedImages)
+              );
+              updateFormData.set("existingCoverImage", existingCover);
+              updateFormData.set("existingVideoUrl", existingVideo);
+              if (formData.get("isFeatured") === "on") {
+                updateFormData.set("isFeatured", "on");
+              }
+
+              setCoverProgress(60);
+              setImagesProgress(60);
+              setVideoProgress(60);
 
               const response = await fetch(getApiUrl("api/galleries"), {
                 method: "PUT",
-                body: formData,
+                body: updateFormData,
               });
 
               // Check if response is JSON

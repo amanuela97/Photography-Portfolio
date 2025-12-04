@@ -192,26 +192,54 @@ export function AboutForm({ about }: AboutFormProps) {
             const form = e.currentTarget;
             const formData = new FormData(form);
 
-            // Set controlled state values
-            formData.set("heroIntro", heroIntro);
-            formData.set("processSteps", JSON.stringify(steps));
-            formData.set("cameraGear", JSON.stringify(camera));
-            formData.set("lensGear", JSON.stringify(lenses));
-            formData.set("softwareGear", JSON.stringify(software));
+            let landscapeImageUrl = about?.hero.landscapeImage ?? "";
 
-            // Add landscape file if present
+            // Upload landscape image directly to Firebase Storage if a new file is selected
             if (landscapeFiles.length > 0 && landscapeFiles[0]) {
-              formData.set("landscapeFile", landscapeFiles[0]);
-              setLandscapeProgress(30);
-            } else if (about?.hero.landscapeImage) {
-              // Use existing image URL if no new file
-              formData.set("landscapeImageUrl", about.hero.landscapeImage);
+              const landscapeFile = landscapeFiles[0];
+              setLandscapeProgress(10);
+              
+              const ext = landscapeFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+              const storagePath = `about/landscape/hero${ext}`;
+
+              try {
+                landscapeImageUrl = await uploadFileToStorageClient(
+                  landscapeFile,
+                  storagePath,
+                  (progress) => {
+                    setLandscapeProgress(10 + progress * 0.8); // 10-90%
+                  }
+                );
+                setLandscapeProgress(90);
+              } catch (error) {
+                console.error("Landscape upload error:", error);
+                throw new Error(
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to upload landscape image. Please check the file size and try again."
+                );
+              }
             }
 
-            setLandscapeProgress(50);
+            // Now save about content with URL only (no file)
+            const aboutFormData = new FormData();
+            aboutFormData.set("heroIntro", heroIntro);
+            aboutFormData.set("processSteps", JSON.stringify(steps));
+            aboutFormData.set("cameraGear", JSON.stringify(camera));
+            aboutFormData.set("lensGear", JSON.stringify(lenses));
+            aboutFormData.set("softwareGear", JSON.stringify(software));
+            aboutFormData.set("storyWhoIAm", formData.get("storyWhoIAm")?.toString() ?? "");
+            aboutFormData.set("storyInspiration", formData.get("storyInspiration")?.toString() ?? "");
+            aboutFormData.set("storyHowIStarted", formData.get("storyHowIStarted")?.toString() ?? "");
+            aboutFormData.set("storyPhilosophy", formData.get("storyPhilosophy")?.toString() ?? "");
+            aboutFormData.set("processIntro", formData.get("processIntro")?.toString() ?? "");
+            aboutFormData.set("processExpect", formData.get("processExpect")?.toString() ?? "");
+            aboutFormData.set("landscapeImageUrl", landscapeImageUrl);
+
+            setLandscapeProgress(95);
             const response = await fetch(getApiUrl("api/about"), {
               method: "POST",
-              body: formData,
+              body: aboutFormData,
             });
 
             const result = await response.json();

@@ -14,12 +14,18 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const socials = parseJsonField<SocialLink[]>(formData.get("socials")) ?? [];
-    const currentPortrait =
-      formData.get("currentPortraitImage")?.toString() ?? "";
+    
+    // Check if URL is provided (new approach - file uploaded separately)
+    // or file is provided (legacy approach)
+    const portraitImageUrl = formData.get("portraitImageUrl")?.toString();
     const portraitFile = formData.get("portraitImage");
 
-    let portraitImage = currentPortrait;
-    if (
+    let portraitImage: string;
+
+    // Use URL if provided (new approach), otherwise upload file (backward compatibility)
+    if (portraitImageUrl) {
+      portraitImage = portraitImageUrl;
+    } else if (
       portraitFile instanceof File &&
       portraitFile.size > 0 &&
       portraitFile.name !== "undefined"
@@ -29,6 +35,9 @@ export async function POST(request: Request) {
       portraitImage = await uploadFileToStorage(portraitFile, {
         path: `${PORTRAIT_FOLDER}/portrait${extension}`,
       });
+    } else {
+      // Use existing portrait if no new file or URL provided
+      portraitImage = formData.get("currentPortraitImage")?.toString() ?? "";
     }
 
     const payload: ProfileDocument = {

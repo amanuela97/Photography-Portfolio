@@ -94,10 +94,13 @@ export async function POST(request: NextRequest) {
       parseJsonField<GearItem[]>(formData.get("softwareGear")) ?? [];
 
     // Handle landscape image upload
+    // Check if URL is provided (new approach - file uploaded separately)
+    // or file is provided (legacy approach)
+    const landscapeImageUrlParam = formData.get("landscapeImageUrl")?.toString().trim();
     const landscapeFile = formData.get("landscapeFile") as File | null;
-    let landscapeImageUrl =
-      formData.get("landscapeImageUrl")?.toString().trim() ?? "";
+    let landscapeImageUrl = landscapeImageUrlParam ?? "";
 
+    // Use URL if provided (new approach), otherwise upload file (backward compatibility)
     if (landscapeFile && landscapeFile.size > 0) {
       // Check file size (50MB limit)
       const maxSize = 50 * 1024 * 1024;

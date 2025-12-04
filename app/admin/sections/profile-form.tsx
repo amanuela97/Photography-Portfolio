@@ -79,17 +79,71 @@ export function ProfileForm({ profile }: ProfileFormProps) {
     try {
       setIsSubmitting(true);
       const formData = new FormData(event.currentTarget);
-      formData.set("socials", JSON.stringify(socials));
-      formData.set("currentPortraitImage", portraitPreview);
+      
+      let portraitImageUrl = portraitPreview;
+
+      // Upload portrait image directly to Firebase Storage if a new file is selected
       if (portraitFiles.length > 0 && portraitFiles[0]) {
-        formData.set("portraitImage", portraitFiles[0]);
+        const portraitFile = portraitFiles[0];
+        const ext = portraitFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+        const storagePath = `site/profile/portrait/portrait${ext}`;
+
+        try {
+          portraitImageUrl = await uploadFileToStorageClient(
+            portraitFile,
+            storagePath
+          );
+        } catch (error) {
+          console.error("Portrait upload error:", error);
+          throw new Error(
+            error instanceof Error
+              ? error.message
+              : "Failed to upload portrait image. Please check the file size and try again."
+          );
+        }
       }
+
+      // Now save profile with URL only (no file)
+      const profileFormData = new FormData();
+      profileFormData.set("name", formData.get("name")?.toString() ?? "");
+      profileFormData.set("title", formData.get("title")?.toString() ?? "");
+      profileFormData.set("location", formData.get("location")?.toString() ?? "");
+      profileFormData.set("bio", formData.get("bio")?.toString() ?? "");
+      profileFormData.set("email", formData.get("email")?.toString() ?? "");
+      profileFormData.set("phone", formData.get("phone")?.toString() ?? "");
+      profileFormData.set("socials", JSON.stringify(socials));
+      profileFormData.set("portraitImageUrl", portraitImageUrl);
 
       const response = await fetch(getApiUrl("api/profile"), {
         method: "POST",
-        body: formData,
+        body: profileFormData,
       });
-      const result = await response.json();
+      
+      // Check content-type before parsing JSON
+      const contentType = response.headers.get("content-type");
+      let result;
+
+      if (contentType?.includes("application/json")) {
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          const text = await response.text();
+          console.error("Failed to parse JSON response:", text, jsonError);
+          throw new Error(
+            response.status >= 500
+              ? "Server error occurred. Please try again later."
+              : "Failed to save profile. Please check your input and try again."
+          );
+        }
+      } else {
+        const text = await response.text();
+        console.error("Non-JSON response received:", text.substring(0, 200));
+        throw new Error(
+          response.status >= 500
+            ? "Server error occurred. Please try again later."
+            : "Failed to save profile. Please check your input and try again."
+        );
+      }
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to save profile.");

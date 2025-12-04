@@ -18,6 +18,7 @@ import { MediaDropzone } from "../components/media-dropzone";
 import toast from "react-hot-toast";
 import type { EventType } from "@/utils/types";
 import { getApiUrl } from "@/utils/api-url";
+import { uploadFileToStorageClient } from "@/utils/firebase/client-upload";
 
 const EVENT_TYPES: EventType[] = [
   "Wedding",
@@ -73,20 +74,80 @@ export function PhotoUploadForm({ favoriteCount }: PhotoUploadFormProps) {
             const form = e.currentTarget;
             const formData = new FormData(form);
 
-            // Add the image file if selected
+            // Check if image file is selected
             const imageFile = imageFiles[0];
-            if (imageFile && imageFile.size > 0) {
-              formData.set("image", imageFile);
-            } else {
+            if (!imageFile || imageFile.size === 0) {
               throw new Error("Image file is required.");
             }
 
+            // Upload image directly to Firebase Storage to avoid Vercel payload size limits
+            const ext = imageFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+            const storagePath = `photos/${Date.now()}${ext}`;
+
+            let imageUrl: string;
+            try {
+              imageUrl = await uploadFileToStorageClient(
+                imageFile,
+                storagePath
+              );
+            } catch (error) {
+              console.error("Image upload error:", error);
+              throw new Error(
+                error instanceof Error
+                  ? error.message
+                  : "Failed to upload image. Please check the file size and try again."
+              );
+            }
+
+            // Now create photo with URL only (no file)
+            const photoFormData = new FormData();
+            photoFormData.set("title", formData.get("title")?.toString() ?? "");
+            photoFormData.set(
+              "eventType",
+              formData.get("eventType")?.toString() ?? "Other"
+            );
+            if (formData.get("isFavorite") === "on") {
+              photoFormData.set("isFavorite", "on");
+            }
+            photoFormData.set("imageUrl", imageUrl);
+
             const response = await fetch(getApiUrl("api/photos"), {
               method: "POST",
-              body: formData,
+              body: photoFormData,
             });
 
-            const result = await response.json();
+            // Check content-type before parsing JSON
+            const contentType = response.headers.get("content-type");
+            let result;
+
+            if (contentType?.includes("application/json")) {
+              try {
+                result = await response.json();
+              } catch (jsonError) {
+                const text = await response.text();
+                console.error(
+                  "Failed to parse JSON response:",
+                  text,
+                  jsonError
+                );
+                throw new Error(
+                  response.status >= 500
+                    ? "Server error occurred. Please try again later."
+                    : "Failed to upload photo. Please check your input and try again."
+                );
+              }
+            } else {
+              const text = await response.text();
+              console.error(
+                "Non-JSON response received:",
+                text.substring(0, 200)
+              );
+              throw new Error(
+                response.status >= 500
+                  ? "Server error occurred. Please try again later."
+                  : "Failed to upload photo. Please check your input and try again."
+              );
+            }
 
             if (!response.ok) {
               throw new Error(result.error || "Failed to upload photo");

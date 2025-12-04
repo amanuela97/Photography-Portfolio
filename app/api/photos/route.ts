@@ -96,7 +96,12 @@ function isValidImageFile(
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+
+    // Check if URL is provided (new approach - file uploaded separately)
+    // or file is provided (legacy approach)
+    const imageUrl = formData.get("imageUrl")?.toString();
     const imageFile = formData.get("image") as File | null;
+
     const title = formData.get("title")?.toString() ?? "";
     const eventType = (formData.get("eventType")?.toString() ??
       "Other") as EventType;
@@ -104,44 +109,50 @@ export async function POST(request: NextRequest) {
     const isCoverFor = (formData.get("isCoverFor")?.toString() ??
       "NONE") as CoverPageType;
 
-    if (!imageFile || imageFile.size === 0) {
+    let url: string;
+
+    // Use URL if provided (new approach), otherwise upload file (backward compatibility)
+    if (imageUrl) {
+      url = imageUrl;
+    } else if (imageFile && imageFile.size > 0) {
+      // Check file size (50MB limit)
+      const maxSize = 50 * 1024 * 1024;
+      if (imageFile.size > maxSize) {
+        return NextResponse.json(
+          { error: "File size exceeds 50MB limit" },
+          { status: 400 }
+        );
+      }
+
+      // Validate image file
+      const arrayBuffer = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const validation = isValidImageFile(buffer, imageFile.type);
+
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error || "Invalid or corrupted image file" },
+          { status: 400 }
+        );
+      }
+
+      // Upload to Firebase Storage
+      const extension = imageFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
+      const uploadedUrl = await uploadFileToStorage(imageFile, {
+        path: `photos/${Date.now()}${extension}`,
+      });
+
+      if (!uploadedUrl) {
+        return NextResponse.json(
+          { error: "Failed to upload image to storage." },
+          { status: 500 }
+        );
+      }
+      url = uploadedUrl;
+    } else {
       return NextResponse.json(
-        { error: "Image file is required." },
+        { error: "Image file or URL is required." },
         { status: 400 }
-      );
-    }
-
-    // Check file size (50MB limit)
-    const maxSize = 50 * 1024 * 1024;
-    if (imageFile.size > maxSize) {
-      return NextResponse.json(
-        { error: "File size exceeds 50MB limit" },
-        { status: 400 }
-      );
-    }
-
-    // Validate image file
-    const arrayBuffer = await imageFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const validation = isValidImageFile(buffer, imageFile.type);
-
-    if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error || "Invalid or corrupted image file" },
-        { status: 400 }
-      );
-    }
-
-    // Upload to Firebase Storage
-    const extension = imageFile.name.match(/\.[^/.]+$/)?.at(0) || ".jpg";
-    const url = await uploadFileToStorage(imageFile, {
-      path: `photos/${Date.now()}${extension}`,
-    });
-
-    if (!url) {
-      return NextResponse.json(
-        { error: "Failed to upload image to storage." },
-        { status: 500 }
       );
     }
 
